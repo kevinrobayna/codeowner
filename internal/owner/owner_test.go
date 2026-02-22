@@ -133,6 +133,8 @@ func TestParseDir(t *testing.T) {
 		filepath.Join("nested", "handler.go"): {"@api-team"},
 		filepath.Join("nested", "deeply", "service.py"):            {"@platform-team"},
 		filepath.Join("nested", "deeply", "nested", "config.yaml"): {"@infra-team"},
+		filepath.Join(".github", "workflows", "ci.yml"):            {"@devops-team"},
+		filepath.Join("nested", "deeply", ".hidden", "secret.rb"):  {"@secret-team"},
 	}
 
 	for path, wantOwners := range checks {
@@ -228,14 +230,32 @@ func TestParseFile_RejectsNoAt(t *testing.T) {
 
 func TestFormatCodeOwners(t *testing.T) {
 	mappings := []owner.Mapping{
-		{Path: "src/main.go", Owners: []string{"@backend"}},
-		{Path: "web/index.html", Owners: []string{"@frontend", "@design"}},
+		// Intentionally unordered to verify sorting.
+		{Path: filepath.Join("src", "cmd", "main.go"), Owners: []string{"@backend"}},
+		{Path: "README.md", Owners: []string{"@docs"}},
+		{Path: filepath.Join(".github", "workflows", "ci.yml"), Owners: []string{"@devops"}},
+		{Path: filepath.Join("src", "cmd", "helper.go"), Owners: []string{"@backend"}},
+		{Path: filepath.Join("src", "lib", "utils.go"), Owners: []string{"@platform"}},
+		{Path: "Makefile", Owners: []string{"@infra"}},
+		{Path: filepath.Join(".github", "workflows", "deploy.yml"), Owners: []string{"@devops"}},
+		{Path: filepath.Join("web", "index.html"), Owners: []string{"@frontend"}},
 	}
 
 	got := owner.FormatCodeOwners(mappings)
-	want := "src/main.go @backend\nweb/index.html @frontend @design\n"
+	want := "Makefile @infra\n" +
+		"README.md @docs\n" +
+		"\n" +
+		filepath.Join(".github", "workflows", "ci.yml") + " @devops\n" +
+		filepath.Join(".github", "workflows", "deploy.yml") + " @devops\n" +
+		"\n" +
+		filepath.Join("src", "cmd", "helper.go") + " @backend\n" +
+		filepath.Join("src", "cmd", "main.go") + " @backend\n" +
+		"\n" +
+		filepath.Join("src", "lib", "utils.go") + " @platform\n" +
+		"\n" +
+		filepath.Join("web", "index.html") + " @frontend\n"
 
 	if got != want {
-		t.Errorf("FormatCodeOwners:\ngot:  %q\nwant: %q", got, want)
+		t.Errorf("FormatCodeOwners:\ngot:\n%s\nwant:\n%s", got, want)
 	}
 }
