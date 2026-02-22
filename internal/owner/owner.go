@@ -9,32 +9,39 @@ import (
 	"strings"
 )
 
-// Mapping holds a file path and its code owner.
+// Mapping holds a file path and its code owners.
 type Mapping struct {
-	Path  string
-	Owner string
+	Path   string
+	Owners []string
 }
 
 // DefaultPrefix is the default annotation prefix to search for.
 const DefaultPrefix = "CodeOwner:"
 
-// ParseFile reads a file and returns the code owner if an annotation matching
-// the given prefix is found on any line, regardless of comment syntax.
-func ParseFile(path, prefix string) (string, bool) {
+// ParseFile reads a file and returns all code owners found in annotations
+// matching the given prefix. Owners can appear on one line
+// (CodeOwner: @a @b) or across multiple lines.
+func ParseFile(path, prefix string) []string {
 	f, err := os.Open(path)
 	if err != nil {
-		return "", false
+		return nil
 	}
 	defer f.Close()
 
+	seen := make(map[string]struct{})
+	var owners []string
+
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		if o, ok := extractOwner(scanner.Text(), prefix); ok {
-			return o, true
+		for _, o := range extractOwners(scanner.Text(), prefix) {
+			if _, dup := seen[o]; !dup {
+				seen[o] = struct{}{}
+				owners = append(owners, o)
+			}
 		}
 	}
 
-	return "", false
+	return owners
 }
 
 // ParseDir walks a directory and returns all CodeOwner mappings.
@@ -52,12 +59,12 @@ func ParseDir(root, prefix string) ([]Mapping, error) {
 			return nil
 		}
 
-		if o, ok := ParseFile(path, prefix); ok {
+		if owners := ParseFile(path, prefix); len(owners) > 0 {
 			rel, relErr := filepath.Rel(root, path)
 			if relErr != nil {
 				rel = path
 			}
-			mappings = append(mappings, Mapping{Path: rel, Owner: o})
+			mappings = append(mappings, Mapping{Path: rel, Owners: owners})
 		}
 		return nil
 	})
@@ -69,34 +76,31 @@ func ParseDir(root, prefix string) ([]Mapping, error) {
 func FormatCodeOwners(mappings []Mapping) string {
 	var b strings.Builder
 	for _, m := range mappings {
-		fmt.Fprintf(&b, "/%s %s\n", m.Path, m.Owner)
+		fmt.Fprintf(&b, "/%s %s\n", m.Path, strings.Join(m.Owners, " "))
 	}
 	return b.String()
 }
 
-func extractOwner(line, prefix string) (string, bool) {
+// extractOwners parses all @-prefixed tokens after the prefix on a line.
+func extractOwners(line, prefix string) []string {
 	idx := strings.Index(line, prefix)
 	if idx < 0 {
-		return "", false
+		return nil
 	}
 
 	rest := line[idx+len(prefix):]
 
-	// Require a space between the prefix and the owner.
+	// Require a space between the prefix and the owners.
 	if rest == "" || rest[0] != ' ' {
-		return "", false
+		return nil
 	}
 
-	value := strings.TrimSpace(rest)
-
-	// Owner must start with @.
-	if !strings.HasPrefix(value, "@") {
-		return "", false
+	var owners []string
+	for _, token := range strings.Fields(rest) {
+		if strings.HasPrefix(token, "@") {
+			owners = append(owners, token)
+		}
 	}
 
-	if spaceIdx := strings.IndexByte(value, ' '); spaceIdx > 0 {
-		value = value[:spaceIdx]
-	}
-
-	return value, true
+	return owners
 }

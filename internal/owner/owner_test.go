@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"testing"
 
 	"github.com/kevin-robayna/codeowner/internal/owner"
@@ -16,39 +17,39 @@ func testdataDir() string {
 
 func TestParseFile(t *testing.T) {
 	tests := []struct {
-		file  string
-		owner string
+		file   string
+		owners []string
 	}{
-		{"example.py", "@python_owner"},
-		{"example.rb", "@ruby_owner"},
-		{"example.sh", "@shell_owner"},
-		{"example.pl", "@perl_owner"},
-		{"Dockerfile", "@docker_owner"},
-		{"example.r", "@r_owner"},
-		{"example.ex", "@elixir_owner"},
-		{"example.yaml", "@yaml_owner"},
-		{"example.sql", "@sql_owner"},
-		{"example.lua", "@lua_owner"},
-		{"example.hs", "@haskell_owner"},
-		{"example.c", "@c_owner"},
-		{"example.cpp", "@cpp_owner"},
-		{"Example.java", "@java_owner"},
-		{"example.js", "@js_owner"},
-		{"example.ts", "@ts_owner"},
-		{"example.go", "@go_owner"},
-		{"example.rs", "@rust_owner"},
-		{"example.swift", "@swift_owner"},
-		{"Example.kt", "@kotlin_owner"},
-		{"Example.cs", "@csharp_owner"},
-		{"example.scala", "@scala_owner"},
-		{"example.php", "@php_owner"},
-		{"example.clj", "@clojure_owner"},
-		{"example.el", "@elisp_owner"},
-		{"example.html", "@html_owner"},
-		{"example.xml", "@xml_owner"},
-		{"example.tex", "@latex_owner"},
-		{"example.erl", "@erlang_owner"},
-		{"example.css", "@css_owner"},
+		{"example.py", []string{"@python_owner"}},
+		{"example.rb", []string{"@ruby_owner"}},
+		{"example.sh", []string{"@shell_owner"}},
+		{"example.pl", []string{"@perl_owner"}},
+		{"Dockerfile", []string{"@docker_owner"}},
+		{"example.r", []string{"@r_owner"}},
+		{"example.ex", []string{"@elixir_owner"}},
+		{"example.yaml", []string{"@yaml_owner"}},
+		{"example.sql", []string{"@sql_owner"}},
+		{"example.lua", []string{"@lua_owner"}},
+		{"example.hs", []string{"@haskell_owner"}},
+		{"example.c", []string{"@c_owner"}},
+		{"example.cpp", []string{"@cpp_owner"}},
+		{"Example.java", []string{"@java_owner"}},
+		{"example.js", []string{"@js_owner"}},
+		{"example.ts", []string{"@ts_owner"}},
+		{"example.go", []string{"@go_owner"}},
+		{"example.rs", []string{"@rust_owner"}},
+		{"example.swift", []string{"@swift_owner"}},
+		{"Example.kt", []string{"@kotlin_owner"}},
+		{"Example.cs", []string{"@csharp_owner"}},
+		{"example.scala", []string{"@scala_owner"}},
+		{"example.php", []string{"@php_owner"}},
+		{"example.clj", []string{"@clojure_owner"}},
+		{"example.el", []string{"@elisp_owner"}},
+		{"example.html", []string{"@html_owner"}},
+		{"example.xml", []string{"@xml_owner"}},
+		{"example.tex", []string{"@latex_owner"}},
+		{"example.erl", []string{"@erlang_owner"}},
+		{"example.css", []string{"@css_owner"}},
 	}
 
 	dir := testdataDir()
@@ -56,12 +57,12 @@ func TestParseFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.file, func(t *testing.T) {
 			path := filepath.Join(dir, tt.file)
-			got, ok := owner.ParseFile(path, owner.DefaultPrefix)
-			if !ok {
+			got := owner.ParseFile(path, owner.DefaultPrefix)
+			if len(got) == 0 {
 				t.Fatalf("expected to find CodeOwner in %s, got nothing", tt.file)
 			}
-			if got != tt.owner {
-				t.Errorf("ParseFile(%s) = %q, want %q", tt.file, got, tt.owner)
+			if !slices.Equal(got, tt.owners) {
+				t.Errorf("ParseFile(%s) = %v, want %v", tt.file, got, tt.owners)
 			}
 		})
 	}
@@ -74,9 +75,36 @@ func TestParseFile_NoAnnotation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, ok := owner.ParseFile(path, owner.DefaultPrefix)
-	if ok {
-		t.Errorf("expected no CodeOwner, got %q", got)
+	got := owner.ParseFile(path, owner.DefaultPrefix)
+	if len(got) > 0 {
+		t.Errorf("expected no CodeOwner, got %v", got)
+	}
+}
+
+func TestParseFile_MultipleOwnersOneLine(t *testing.T) {
+	path := filepath.Join(testdataDir(), "multi_owners_single_line.py")
+	got := owner.ParseFile(path, owner.DefaultPrefix)
+	want := []string{"@team-a", "@team-b", "@person-c"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestParseFile_MultipleOwnersMultipleLines(t *testing.T) {
+	path := filepath.Join(testdataDir(), "multi_owners_multi_line.py")
+	got := owner.ParseFile(path, owner.DefaultPrefix)
+	want := []string{"@team-frontend", "@team-backend"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestParseFile_DeduplicatesOwners(t *testing.T) {
+	path := filepath.Join(testdataDir(), "multi_owners_deduplicated.py")
+	got := owner.ParseFile(path, owner.DefaultPrefix)
+	want := []string{"@team-a"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 }
 
@@ -92,23 +120,23 @@ func TestParseDir(t *testing.T) {
 		t.Errorf("expected at least 30 mappings, got %d", len(mappings))
 	}
 
-	found := make(map[string]string)
+	found := make(map[string][]string)
 	for _, m := range mappings {
-		found[m.Path] = m.Owner
+		found[m.Path] = m.Owners
 	}
 
-	checks := map[string]string{
-		"example.py":  "@python_owner",
-		"example.go":  "@go_owner",
-		"example.rs":  "@rust_owner",
-		"example.css": "@css_owner",
+	checks := map[string][]string{
+		"example.py":  {"@python_owner"},
+		"example.go":  {"@go_owner"},
+		"example.rs":  {"@rust_owner"},
+		"example.css": {"@css_owner"},
 	}
 
-	for path, wantOwner := range checks {
+	for path, wantOwners := range checks {
 		if got, ok := found[path]; !ok {
 			t.Errorf("missing mapping for %s", path)
-		} else if got != wantOwner {
-			t.Errorf("mapping for %s = %q, want %q", path, got, wantOwner)
+		} else if !slices.Equal(got, wantOwners) {
+			t.Errorf("mapping for %s = %v, want %v", path, got, wantOwners)
 		}
 	}
 }
@@ -121,17 +149,15 @@ func TestParseFile_CustomPrefix(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, ok := owner.ParseFile(path, "Owner:")
-	if !ok {
-		t.Fatal("expected to find owner with custom prefix")
-	}
-	if got != "@team-backend" {
-		t.Errorf("got %q, want %q", got, "@team-backend")
+	got := owner.ParseFile(path, "Owner:")
+	want := []string{"@team-backend"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
 	}
 
-	_, ok = owner.ParseFile(path, owner.DefaultPrefix)
-	if ok {
-		t.Error("default prefix should not match custom annotation")
+	got = owner.ParseFile(path, owner.DefaultPrefix)
+	if len(got) > 0 {
+		t.Errorf("default prefix should not match custom annotation, got %v", got)
 	}
 }
 
@@ -143,9 +169,9 @@ func TestParseFile_RejectsNoSpace(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, ok := owner.ParseFile(path, owner.DefaultPrefix)
-	if ok {
-		t.Error("should reject annotation without space after prefix")
+	got := owner.ParseFile(path, owner.DefaultPrefix)
+	if len(got) > 0 {
+		t.Errorf("should reject annotation without space after prefix, got %v", got)
 	}
 }
 
@@ -157,20 +183,20 @@ func TestParseFile_RejectsNoAt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, ok := owner.ParseFile(path, owner.DefaultPrefix)
-	if ok {
-		t.Error("should reject owner without @ prefix")
+	got := owner.ParseFile(path, owner.DefaultPrefix)
+	if len(got) > 0 {
+		t.Errorf("should reject owner without @ prefix, got %v", got)
 	}
 }
 
 func TestFormatCodeOwners(t *testing.T) {
 	mappings := []owner.Mapping{
-		{Path: "src/main.go", Owner: "@backend"},
-		{Path: "web/index.html", Owner: "@frontend"},
+		{Path: "src/main.go", Owners: []string{"@backend"}},
+		{Path: "web/index.html", Owners: []string{"@frontend", "@design"}},
 	}
 
 	got := owner.FormatCodeOwners(mappings)
-	want := "/src/main.go @backend\n/web/index.html @frontend\n"
+	want := "/src/main.go @backend\n/web/index.html @frontend @design\n"
 
 	if got != want {
 		t.Errorf("FormatCodeOwners:\ngot:  %q\nwant: %q", got, want)
