@@ -5,13 +5,14 @@ import (
 	"os"
 
 	"github.com/kevin-robayna/codeowner/internal/formatter"
-	"github.com/kevin-robayna/codeowner/internal/owner"
+	"github.com/kevin-robayna/codeowner/internal/scanning"
 	"github.com/spf13/cobra"
 )
 
 func NewRootCmd() *cobra.Command {
 	var prefix string
 	var dirOwner string
+	var protect string
 
 	root := &cobra.Command{
 		Use:          "codeowner [path]",
@@ -25,9 +26,17 @@ func NewRootCmd() *cobra.Command {
 				dir = args[0]
 			}
 
-			mappings, err := owner.ParseDir(dir, prefix, dirOwner)
+			mappings, err := scanning.ParseDir(dir, prefix, dirOwner)
 			if err != nil {
 				return fmt.Errorf("scanning directory: %w", err)
+			}
+
+			if protect != "" {
+				pm, pErr := scanning.ParseProtect(protect)
+				if pErr != nil {
+					return fmt.Errorf("--protect: %w", pErr)
+				}
+				mappings = append(mappings, pm)
 			}
 
 			if len(mappings) == 0 {
@@ -40,8 +49,9 @@ func NewRootCmd() *cobra.Command {
 		},
 	}
 
-	root.Flags().StringVar(&prefix, "prefix", owner.DefaultPrefix, "annotation prefix to search for")
-	root.Flags().StringVar(&dirOwner, "dirowner", owner.CodeOwnerFile, "filename for directory-level ownership")
+	root.Flags().StringVar(&prefix, "prefix", scanning.DefaultPrefix, "annotation prefix to search for")
+	root.Flags().StringVar(&dirOwner, "dirowner", scanning.CodeOwnerFile, "filename for directory-level ownership")
+	root.Flags().StringVar(&protect, "protect", "", "owners for the CODEOWNERS file itself (e.g. \"@admin @team\")")
 	root.AddCommand(newVersionCmd())
 
 	return root

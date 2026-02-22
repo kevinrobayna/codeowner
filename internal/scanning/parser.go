@@ -1,7 +1,8 @@
-package owner
+package scanning
 
 import (
 	"bufio"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -19,6 +20,24 @@ const DefaultPrefix = "CodeOwner:"
 
 // CodeOwnerFile is the name of the directory-level ownership file.
 const CodeOwnerFile = ".codeowner"
+
+// ParseProtect parses a whitespace-separated string of owner handles and
+// returns a Mapping that protects the CODEOWNERS file itself. Each token must
+// start with @ and contain only valid characters.
+func ParseProtect(s string) (Mapping, error) {
+	fields := strings.Fields(s)
+	owners := make([]string, 0, len(fields))
+	for _, tok := range fields {
+		if !strings.HasPrefix(tok, "@") {
+			return Mapping{}, fmt.Errorf("invalid owner %q: must start with @", tok)
+		}
+		if !isValidOwner(tok) {
+			return Mapping{}, fmt.Errorf("invalid owner %q: contains invalid characters", tok)
+		}
+		owners = append(owners, tok)
+	}
+	return Mapping{Path: "CODEOWNERS", Owners: owners}, nil
+}
 
 // ParseFile reads a file and returns all code owners found in annotations
 // matching the given prefix. Owners can appear on one line
