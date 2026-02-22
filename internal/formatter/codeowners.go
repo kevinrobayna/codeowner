@@ -55,13 +55,15 @@ func pathSection(path string) int {
 	return 2
 }
 
-// groupKey returns the grouping key for a path: the first two path segments
-// joined, or the first segment for single-depth paths, or "" for root files.
+// groupKey returns the grouping key for a path based on its directory
+// structure: "" for root files, the first directory for single-depth paths,
+// or the first two directories for deeper paths.
 func groupKey(path string) string {
-	parts := strings.SplitN(path, string(filepath.Separator), 3)
-	if len(parts) == 1 {
+	dir := filepath.Dir(path)
+	if dir == "." {
 		return ""
 	}
+	parts := strings.SplitN(dir, string(filepath.Separator), 3)
 	if len(parts) >= 2 {
 		return parts[0] + string(filepath.Separator) + parts[1]
 	}
