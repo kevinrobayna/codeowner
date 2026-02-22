@@ -23,7 +23,7 @@ builds:
 
 archives:
   - id: codeowner-archive
-    builds:
+    ids:
       - codeowner
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
@@ -46,21 +46,17 @@ changelog:
       - "^ci:"
       - "^chore:"
 
-brews:
+homebrew_casks:
   - name: codeowner
     repository:
       owner: kevinrobayna
       name: homebrew-tap
       branch: main
       token: "{{ .Env.HOMEBREW_TAPS_PAT }}"
-    directory: Formula
+    directory: Casks
     homepage: "https://github.com/kevinrobayna/codeowner"
     description: "A CLI tool for working with CODEOWNERS files"
     license: "MIT"
-    install: |
-      bin.install "codeowner"
-    test: |
-      system "#{bin}/codeowner", "version"
     commit_author:
       name: goreleaserbot
       email: bot@goreleaser.com
