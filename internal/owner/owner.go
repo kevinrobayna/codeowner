@@ -76,7 +76,7 @@ func ParseDir(root, prefix string) ([]Mapping, error) {
 func FormatCodeOwners(mappings []Mapping) string {
 	var b strings.Builder
 	for _, m := range mappings {
-		fmt.Fprintf(&b, "/%s %s\n", m.Path, strings.Join(m.Owners, " "))
+		fmt.Fprintf(&b, "%s %s\n", m.Path, strings.Join(m.Owners, " "))
 	}
 	return b.String()
 }
@@ -85,6 +85,11 @@ func FormatCodeOwners(mappings []Mapping) string {
 func extractOwners(line, prefix string) []string {
 	idx := strings.Index(line, prefix)
 	if idx < 0 {
+		return nil
+	}
+
+	// The prefix must be at the start of the line or preceded by a space.
+	if idx > 0 && line[idx-1] != ' ' {
 		return nil
 	}
 
@@ -97,10 +102,27 @@ func extractOwners(line, prefix string) []string {
 
 	var owners []string
 	for _, token := range strings.Fields(rest) {
-		if strings.HasPrefix(token, "@") {
+		if strings.HasPrefix(token, "@") && isValidOwner(token) {
 			owners = append(owners, token)
 		}
 	}
 
 	return owners
+}
+
+// isValidOwner checks that an owner handle contains only valid characters:
+// @, letters, digits, hyphens, underscores, and slashes (for org/team).
+func isValidOwner(s string) bool {
+	for _, c := range s {
+		switch {
+		case c >= 'a' && c <= 'z',
+			c >= 'A' && c <= 'Z',
+			c >= '0' && c <= '9',
+			c == '@', c == '-', c == '_', c == '/':
+			continue
+		default:
+			return false
+		}
+	}
+	return true
 }

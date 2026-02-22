@@ -21,8 +21,8 @@ Add a `CodeOwner:` annotation inside any comment in your source files:
 Run `codeowner` and it prints a CODEOWNERS file to stdout:
 
 ```
-/src/api/handler.go @backend-team
-/web/index.html @frontend-team
+src/api/handler.go @backend-team
+web/index.html @frontend-team
 ```
 
 The tool is **language-agnostic** — it searches for the annotation as plain text, so it works with any comment syntax.
@@ -45,7 +45,7 @@ Or across separate lines:
 Both produce:
 
 ```
-/src/service.py @backend-team @sre-team
+src/service.py @backend-team @sre-team
 ```
 
 Duplicates are automatically deduplicated.
@@ -58,11 +58,13 @@ Use `--prefix` to search for a different annotation:
 codeowner --prefix "Owner:" .
 ```
 
-This matches `Owner: @my-team` instead of `CodeOwner: @my-team`.
+This will match `Owner: @my-team` instead of the default `CodeOwner: @my-team` syntax.
 
 ### Annotation rules
 
-- There **must** be a space between the prefix and the owner (`CodeOwner: @team`, not `CodeOwner:@team`)
+- There **must** be a space between the prefix and the owner
+  - Valid: `CodeOwner: @team`
+  - Invalid: `CodeOwner:@team`
 - Owners **must** start with `@`
 
 ## Install

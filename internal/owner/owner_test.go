@@ -178,6 +178,40 @@ func TestParseFile_RejectsNoSpace(t *testing.T) {
 	}
 }
 
+func TestParseFile_OrgTeamOwner(t *testing.T) {
+	path := filepath.Join(testdataDir(), "org_team_owner.py")
+	got := owner.ParseFile(path, owner.DefaultPrefix)
+	want := []string{"@myorg/backend-team"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestParseFile_OrgTeamMultipleOwners(t *testing.T) {
+	path := filepath.Join(testdataDir(), "org_team_multiple_owners.js")
+	got := owner.ParseFile(path, owner.DefaultPrefix)
+	want := []string{"@myorg/frontend-team", "@myorg/design-team", "@individual-dev"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestParseFile_RejectsPrefixNotPrecededBySpace(t *testing.T) {
+	path := filepath.Join(testdataDir(), "invalid_prefix_not_preceded_by_space.md")
+	got := owner.ParseFile(path, owner.DefaultPrefix)
+	if len(got) > 0 {
+		t.Errorf("should reject prefix not preceded by space, got %v", got)
+	}
+}
+
+func TestParseFile_RejectsOwnerWithSpecialChars(t *testing.T) {
+	path := filepath.Join(testdataDir(), "invalid_owner_special_chars.txt")
+	got := owner.ParseFile(path, owner.DefaultPrefix)
+	if len(got) > 0 {
+		t.Errorf("should reject owners with special characters, got %v", got)
+	}
+}
+
 func TestParseFile_RejectsNoAt(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "noat.py")
@@ -199,7 +233,7 @@ func TestFormatCodeOwners(t *testing.T) {
 	}
 
 	got := owner.FormatCodeOwners(mappings)
-	want := "/src/main.go @backend\n/web/index.html @frontend @design\n"
+	want := "src/main.go @backend\nweb/index.html @frontend @design\n"
 
 	if got != want {
 		t.Errorf("FormatCodeOwners:\ngot:  %q\nwant: %q", got, want)

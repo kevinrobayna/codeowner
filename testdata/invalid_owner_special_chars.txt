@@ -1,0 +1,5 @@
+CodeOwner: @team` should be ignored because of the backtick.
+CodeOwner: @team. should be ignored because of the dot.
+CodeOwner: @team, should be ignored because of the comma.
+
+No valid owners here.
