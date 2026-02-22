@@ -50,6 +50,27 @@ src/service.py @backend-team @sre-team
 
 Duplicates are automatically deduplicated.
 
+### Directory-level ownership
+
+Create a `.codeowner` file in any directory to assign ownership to the entire directory:
+
+```
+# dirowner/.codeowner
+@platform-team
+```
+
+This produces:
+
+```
+dirowner/** @platform-team
+```
+
+Use `--dirowner` to change the filename:
+
+```sh
+codeowner --dirowner OWNERS .
+```
+
 ### Custom prefix
 
 Use `--prefix` to search for a different annotation:
@@ -96,6 +117,9 @@ codeowner ./src
 
 # Use a custom prefix
 codeowner --prefix "Owner:" .
+
+# Use a custom directory ownership filename
+codeowner --dirowner OWNERS .
 
 # Print version
 codeowner version
