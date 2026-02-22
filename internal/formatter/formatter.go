@@ -6,16 +6,23 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/kevin-robayna/codeowner/internal/owner"
+	"github.com/kevin-robayna/codeowner/internal/scanning"
 )
 
 // CodeOwners formats mappings as a GitHub CODEOWNERS file.
 // Output is sorted and grouped: root files first, then hidden-directory files,
 // then everything else. Within each section, entries are grouped by their
 // top-2-level directory with blank lines between groups.
-func CodeOwners(mappings []owner.Mapping) string {
-	sorted := make([]owner.Mapping, len(mappings))
-	copy(sorted, mappings)
+func CodeOwners(mappings []scanning.Mapping) string {
+	var protect *scanning.Mapping
+	sorted := make([]scanning.Mapping, 0, len(mappings))
+	for i := range mappings {
+		if mappings[i].Path == "CODEOWNERS" {
+			protect = &mappings[i]
+		} else {
+			sorted = append(sorted, mappings[i])
+		}
+	}
 
 	sort.Slice(sorted, func(i, j int) bool {
 		si, sj := pathSection(sorted[i].Path), pathSection(sorted[j].Path)
@@ -30,6 +37,12 @@ func CodeOwners(mappings []owner.Mapping) string {
 	})
 
 	var b strings.Builder
+	if protect != nil {
+		fmt.Fprintf(&b, "%s %s\n", protect.Path, strings.Join(protect.Owners, " "))
+		if len(sorted) > 0 {
+			b.WriteByte('\n')
+		}
+	}
 	prevGroup := ""
 	for i, m := range sorted {
 		g := groupKey(m.Path)

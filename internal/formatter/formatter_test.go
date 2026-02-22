@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/kevin-robayna/codeowner/internal/formatter"
-	"github.com/kevin-robayna/codeowner/internal/owner"
+	"github.com/kevin-robayna/codeowner/internal/scanning"
 )
 
 func TestCodeOwners(t *testing.T) {
-	mappings := []owner.Mapping{
+	mappings := []scanning.Mapping{
 		// Intentionally unordered to verify sorting.
 		{Path: "/" + filepath.Join("src", "cmd", "main.go"), Owners: []string{"@backend"}},
 		{Path: "/README.md", Owners: []string{"@docs"}},
@@ -41,7 +41,7 @@ func TestCodeOwners(t *testing.T) {
 }
 
 func TestCodeOwners_RootFilesGroupedTogether(t *testing.T) {
-	mappings := []owner.Mapping{
+	mappings := []scanning.Mapping{
 		{Path: "/README.md", Owners: []string{"@docs"}},
 		{Path: "/LICENSE.txt", Owners: []string{"@legal"}},
 		{Path: "/docs.md", Owners: []string{"@docs"}},
@@ -58,7 +58,7 @@ func TestCodeOwners_RootFilesGroupedTogether(t *testing.T) {
 }
 
 func TestCodeOwners_DirOwnerPathsSortAndGroup(t *testing.T) {
-	mappings := []owner.Mapping{
+	mappings := []scanning.Mapping{
 		{Path: "/" + filepath.Join("src", "cmd", "main.go"), Owners: []string{"@backend"}},
 		{Path: "/" + filepath.Join("src", "cmd") + "/", Owners: []string{"@cmd-team"}},
 		{Path: "/lib/", Owners: []string{"@lib-team"}},
@@ -77,8 +77,26 @@ func TestCodeOwners_DirOwnerPathsSortAndGroup(t *testing.T) {
 	}
 }
 
+func TestCodeOwners_ProtectMapping(t *testing.T) {
+	mappings := []scanning.Mapping{
+		{Path: "/README.md", Owners: []string{"@docs"}},
+		{Path: "/Makefile", Owners: []string{"@infra"}},
+		{Path: "CODEOWNERS", Owners: []string{"@kevinrobayna", "@admin"}},
+	}
+
+	got := formatter.CodeOwners(mappings)
+	want := "CODEOWNERS @kevinrobayna @admin\n" +
+		"\n" +
+		"/Makefile @infra\n" +
+		"/README.md @docs\n"
+
+	if got != want {
+		t.Errorf("CodeOwners with protect:\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestCodeOwners_SameDirectoryNoBlankLines(t *testing.T) {
-	mappings := []owner.Mapping{
+	mappings := []scanning.Mapping{
 		{Path: "/" + filepath.Join("testdata", "example.go"), Owners: []string{"@go_owner"}},
 		{Path: "/" + filepath.Join("testdata", "example.py"), Owners: []string{"@python_owner"}},
 		{Path: "/" + filepath.Join("testdata", "example.rs"), Owners: []string{"@rust_owner"}},

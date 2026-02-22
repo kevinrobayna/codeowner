@@ -71,6 +71,24 @@ Use `--dirowner` to change the filename:
 codeowner --dirowner OWNERS .
 ```
 
+### Protecting the CODEOWNERS file
+
+Use `--protect` to add a rule that protects the CODEOWNERS file itself:
+
+```sh
+codeowner --protect="@kevinrobayna @admin" .
+```
+
+This prepends a non-anchored `CODEOWNERS` rule at the top of the output so it matches regardless of where the file lives (`/`, `.github/`, `docs/`):
+
+```
+CODEOWNERS @kevinrobayna @admin
+
+/Makefile @infra
+/README.md @docs
+...
+```
+
 ### Custom prefix
 
 Use `--prefix` to search for a different annotation:
@@ -120,6 +138,9 @@ codeowner --prefix "Owner:" .
 
 # Use a custom directory ownership filename
 codeowner --dirowner OWNERS .
+
+# Protect the CODEOWNERS file itself
+codeowner --protect="@admin @platform-team" .
 
 # Print version
 codeowner version

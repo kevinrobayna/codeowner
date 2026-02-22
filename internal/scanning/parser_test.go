@@ -1,4 +1,4 @@
-package owner_test
+package scanning_test
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/kevin-robayna/codeowner/internal/owner"
+	"github.com/kevin-robayna/codeowner/internal/scanning"
 )
 
 func testdataDir() string {
@@ -57,7 +57,7 @@ func TestParseFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.file, func(t *testing.T) {
 			path := filepath.Join(dir, tt.file)
-			got := owner.ParseFile(path, owner.DefaultPrefix)
+			got := scanning.ParseFile(path, scanning.DefaultPrefix)
 			if len(got) == 0 {
 				t.Fatalf("expected to find CodeOwner in %s, got nothing", tt.file)
 			}
@@ -75,7 +75,7 @@ func TestParseFile_NoAnnotation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := owner.ParseFile(path, owner.DefaultPrefix)
+	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	if len(got) > 0 {
 		t.Errorf("expected no CodeOwner, got %v", got)
 	}
@@ -83,7 +83,7 @@ func TestParseFile_NoAnnotation(t *testing.T) {
 
 func TestParseFile_MultipleOwnersOneLine(t *testing.T) {
 	path := filepath.Join(testdataDir(), "multi_owners_single_line.py")
-	got := owner.ParseFile(path, owner.DefaultPrefix)
+	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	want := []string{"@team-a", "@team-b", "@person-c"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -92,7 +92,7 @@ func TestParseFile_MultipleOwnersOneLine(t *testing.T) {
 
 func TestParseFile_MultipleOwnersMultipleLines(t *testing.T) {
 	path := filepath.Join(testdataDir(), "multi_owners_multi_line.py")
-	got := owner.ParseFile(path, owner.DefaultPrefix)
+	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	want := []string{"@team-frontend", "@team-backend"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -101,7 +101,7 @@ func TestParseFile_MultipleOwnersMultipleLines(t *testing.T) {
 
 func TestParseFile_DeduplicatesOwners(t *testing.T) {
 	path := filepath.Join(testdataDir(), "multi_owners_deduplicated.py")
-	got := owner.ParseFile(path, owner.DefaultPrefix)
+	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	want := []string{"@team-a"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -111,7 +111,7 @@ func TestParseFile_DeduplicatesOwners(t *testing.T) {
 func TestParseDir(t *testing.T) {
 	dir := testdataDir()
 
-	mappings, err := owner.ParseDir(dir, owner.DefaultPrefix, owner.CodeOwnerFile)
+	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
 	if err != nil {
 		t.Fatalf("ParseDir(%s) error: %v", dir, err)
 	}
@@ -154,13 +154,13 @@ func TestParseFile_CustomPrefix(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := owner.ParseFile(path, "Owner:")
+	got := scanning.ParseFile(path, "Owner:")
 	want := []string{"@team-backend"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
-	got = owner.ParseFile(path, owner.DefaultPrefix)
+	got = scanning.ParseFile(path, scanning.DefaultPrefix)
 	if len(got) > 0 {
 		t.Errorf("default prefix should not match custom annotation, got %v", got)
 	}
@@ -174,7 +174,7 @@ func TestParseFile_RejectsNoSpace(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := owner.ParseFile(path, owner.DefaultPrefix)
+	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	if len(got) > 0 {
 		t.Errorf("should reject annotation without space after prefix, got %v", got)
 	}
@@ -182,7 +182,7 @@ func TestParseFile_RejectsNoSpace(t *testing.T) {
 
 func TestParseFile_OrgTeamOwner(t *testing.T) {
 	path := filepath.Join(testdataDir(), "org_team_owner.py")
-	got := owner.ParseFile(path, owner.DefaultPrefix)
+	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	want := []string{"@myorg/backend-team"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -191,7 +191,7 @@ func TestParseFile_OrgTeamOwner(t *testing.T) {
 
 func TestParseFile_OrgTeamMultipleOwners(t *testing.T) {
 	path := filepath.Join(testdataDir(), "org_team_multiple_owners.js")
-	got := owner.ParseFile(path, owner.DefaultPrefix)
+	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	want := []string{"@myorg/frontend-team", "@myorg/design-team", "@individual-dev"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -200,7 +200,7 @@ func TestParseFile_OrgTeamMultipleOwners(t *testing.T) {
 
 func TestParseFile_RejectsPrefixNotPrecededBySpace(t *testing.T) {
 	path := filepath.Join(testdataDir(), "invalid_prefix_not_preceded_by_space.md")
-	got := owner.ParseFile(path, owner.DefaultPrefix)
+	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	if len(got) > 0 {
 		t.Errorf("should reject prefix not preceded by space, got %v", got)
 	}
@@ -208,7 +208,7 @@ func TestParseFile_RejectsPrefixNotPrecededBySpace(t *testing.T) {
 
 func TestParseFile_RejectsOwnerWithSpecialChars(t *testing.T) {
 	path := filepath.Join(testdataDir(), "invalid_owner_special_chars.txt")
-	got := owner.ParseFile(path, owner.DefaultPrefix)
+	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	if len(got) > 0 {
 		t.Errorf("should reject owners with special characters, got %v", got)
 	}
@@ -221,7 +221,7 @@ func TestParseCodeOwnerFile_SingleOwner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := owner.ParseCodeOwnerFile(path)
+	got := scanning.ParseCodeOwnerFile(path)
 	want := []string{"@team-a"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -235,7 +235,7 @@ func TestParseCodeOwnerFile_MultipleOwnersSpaceSeparated(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := owner.ParseCodeOwnerFile(path)
+	got := scanning.ParseCodeOwnerFile(path)
 	want := []string{"@team-a", "@team-b"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -249,7 +249,7 @@ func TestParseCodeOwnerFile_MultipleOwnersMultiLine(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := owner.ParseCodeOwnerFile(path)
+	got := scanning.ParseCodeOwnerFile(path)
 	want := []string{"@team-a", "@team-b"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -263,7 +263,7 @@ func TestParseCodeOwnerFile_Deduplication(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := owner.ParseCodeOwnerFile(path)
+	got := scanning.ParseCodeOwnerFile(path)
 	want := []string{"@team-a"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -277,7 +277,7 @@ func TestParseCodeOwnerFile_InvalidOwnersIgnored(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := owner.ParseCodeOwnerFile(path)
+	got := scanning.ParseCodeOwnerFile(path)
 	want := []string{"@valid-team"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -287,7 +287,7 @@ func TestParseCodeOwnerFile_InvalidOwnersIgnored(t *testing.T) {
 func TestParseDir_CodeOwnerFile(t *testing.T) {
 	dir := testdataDir()
 
-	mappings, err := owner.ParseDir(dir, owner.DefaultPrefix, owner.CodeOwnerFile)
+	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
 	if err != nil {
 		t.Fatalf("ParseDir(%s) error: %v", dir, err)
 	}
@@ -338,6 +338,34 @@ func TestParseDir_CodeOwnerFile(t *testing.T) {
 	}
 }
 
+func TestParseProtect(t *testing.T) {
+	m, err := scanning.ParseProtect("@admin @platform-team")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if m.Path != "CODEOWNERS" {
+		t.Errorf("path = %q, want %q", m.Path, "CODEOWNERS")
+	}
+	want := []string{"@admin", "@platform-team"}
+	if !slices.Equal(m.Owners, want) {
+		t.Errorf("owners = %v, want %v", m.Owners, want)
+	}
+}
+
+func TestParseProtect_InvalidNoAt(t *testing.T) {
+	_, err := scanning.ParseProtect("admin")
+	if err == nil {
+		t.Fatal("expected error for owner without @")
+	}
+}
+
+func TestParseProtect_InvalidChars(t *testing.T) {
+	_, err := scanning.ParseProtect("@bad!owner")
+	if err == nil {
+		t.Fatal("expected error for owner with invalid characters")
+	}
+}
+
 func TestParseFile_RejectsNoAt(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "noat.py")
@@ -346,7 +374,7 @@ func TestParseFile_RejectsNoAt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := owner.ParseFile(path, owner.DefaultPrefix)
+	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	if len(got) > 0 {
 		t.Errorf("should reject owner without @ prefix, got %v", got)
 	}
