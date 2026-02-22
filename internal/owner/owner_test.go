@@ -126,10 +126,13 @@ func TestParseDir(t *testing.T) {
 	}
 
 	checks := map[string][]string{
-		"example.py":  {"@python_owner"},
-		"example.go":  {"@go_owner"},
-		"example.rs":  {"@rust_owner"},
-		"example.css": {"@css_owner"},
+		"example.py":                          {"@python_owner"},
+		"example.go":                          {"@go_owner"},
+		"example.rs":                          {"@rust_owner"},
+		"example.css":                         {"@css_owner"},
+		filepath.Join("nested", "handler.go"): {"@api-team"},
+		filepath.Join("nested", "deeply", "service.py"):            {"@platform-team"},
+		filepath.Join("nested", "deeply", "nested", "config.yaml"): {"@infra-team"},
 	}
 
 	for path, wantOwners := range checks {

@@ -1,0 +1,5 @@
+# CodeOwner: @infra-team
+
+app:
+  name: deeply-nested
+  port: 3000
