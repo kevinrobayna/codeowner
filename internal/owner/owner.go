@@ -102,24 +102,35 @@ func ParseDir(root, prefix, dirOwnerFile string) ([]Mapping, error) {
 // Mapping and true if ownership was found.
 func parseEntry(root, path, name, prefix, dirOwnerFile string) (Mapping, bool) {
 	if name == dirOwnerFile {
-		if owners := ParseCodeOwnerFile(path); len(owners) > 0 {
-			rel, relErr := filepath.Rel(root, filepath.Dir(path))
-			if relErr != nil {
-				rel = filepath.Dir(path)
-			}
-			return Mapping{Path: rel + "/**", Owners: owners}, true
-		}
-		return Mapping{}, false
+		return parseDirOwnerEntry(root, path)
 	}
 
-	if owners := ParseFile(path, prefix); len(owners) > 0 {
-		rel, relErr := filepath.Rel(root, path)
-		if relErr != nil {
-			rel = path
-		}
-		return Mapping{Path: rel, Owners: owners}, true
+	owners := ParseFile(path, prefix)
+	if len(owners) == 0 {
+		return Mapping{}, false
 	}
-	return Mapping{}, false
+	rel, relErr := filepath.Rel(root, path)
+	if relErr != nil {
+		rel = path
+	}
+	return Mapping{Path: "/" + rel, Owners: owners}, true
+}
+
+// parseDirOwnerEntry handles a .codeowner file, returning a directory-level
+// Mapping with a root-anchored trailing-slash path.
+func parseDirOwnerEntry(root, path string) (Mapping, bool) {
+	owners := ParseCodeOwnerFile(path)
+	if len(owners) == 0 {
+		return Mapping{}, false
+	}
+	rel, relErr := filepath.Rel(root, filepath.Dir(path))
+	if relErr != nil {
+		rel = filepath.Dir(path)
+	}
+	if rel == "." {
+		return Mapping{Path: "/", Owners: owners}, true
+	}
+	return Mapping{Path: "/" + rel + "/", Owners: owners}, true
 }
 
 // extractOwners parses all @-prefixed tokens after the prefix on a line.
