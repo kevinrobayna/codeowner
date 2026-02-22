@@ -25,8 +25,9 @@ const CodeOwnerFile = ".codeowner"
 // returns a Mapping that protects the CODEOWNERS file itself. Each token must
 // start with @ and contain only valid characters.
 func ParseProtect(s string) (Mapping, error) {
-	var owners []string
-	for _, tok := range strings.Fields(s) {
+	fields := strings.Fields(s)
+	owners := make([]string, 0, len(fields))
+	for _, tok := range fields {
 		if !strings.HasPrefix(tok, "@") {
 			return Mapping{}, fmt.Errorf("invalid owner %q: must start with @", tok)
 		}
