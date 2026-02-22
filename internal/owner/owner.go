@@ -75,7 +75,7 @@ func ParseCodeOwnerFile(path string) []string {
 }
 
 // ParseDir walks a directory and returns all CodeOwner mappings.
-func ParseDir(root, prefix string) ([]Mapping, error) {
+func ParseDir(root, prefix, dirOwnerFile string) ([]Mapping, error) {
 	var mappings []Mapping
 
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
@@ -89,7 +89,7 @@ func ParseDir(root, prefix string) ([]Mapping, error) {
 			return nil
 		}
 
-		if m, ok := parseEntry(root, path, d.Name(), prefix); ok {
+		if m, ok := parseEntry(root, path, d.Name(), prefix, dirOwnerFile); ok {
 			mappings = append(mappings, m)
 		}
 		return nil
@@ -100,8 +100,8 @@ func ParseDir(root, prefix string) ([]Mapping, error) {
 
 // parseEntry handles a single file during directory walking, returning a
 // Mapping and true if ownership was found.
-func parseEntry(root, path, name, prefix string) (Mapping, bool) {
-	if name == CodeOwnerFile {
+func parseEntry(root, path, name, prefix, dirOwnerFile string) (Mapping, bool) {
+	if name == dirOwnerFile {
 		if owners := ParseCodeOwnerFile(path); len(owners) > 0 {
 			rel, relErr := filepath.Rel(root, filepath.Dir(path))
 			if relErr != nil {

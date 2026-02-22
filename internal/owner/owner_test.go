@@ -111,7 +111,7 @@ func TestParseFile_DeduplicatesOwners(t *testing.T) {
 func TestParseDir(t *testing.T) {
 	dir := testdataDir()
 
-	mappings, err := owner.ParseDir(dir, owner.DefaultPrefix)
+	mappings, err := owner.ParseDir(dir, owner.DefaultPrefix, owner.CodeOwnerFile)
 	if err != nil {
 		t.Fatalf("ParseDir(%s) error: %v", dir, err)
 	}
@@ -287,7 +287,7 @@ func TestParseCodeOwnerFile_InvalidOwnersIgnored(t *testing.T) {
 func TestParseDir_CodeOwnerFile(t *testing.T) {
 	dir := testdataDir()
 
-	mappings, err := owner.ParseDir(dir, owner.DefaultPrefix)
+	mappings, err := owner.ParseDir(dir, owner.DefaultPrefix, owner.CodeOwnerFile)
 	if err != nil {
 		t.Fatalf("ParseDir(%s) error: %v", dir, err)
 	}

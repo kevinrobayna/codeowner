@@ -11,6 +11,7 @@ import (
 
 func NewRootCmd() *cobra.Command {
 	var prefix string
+	var dirOwner string
 
 	root := &cobra.Command{
 		Use:          "codeowner [path]",
@@ -24,7 +25,7 @@ func NewRootCmd() *cobra.Command {
 				dir = args[0]
 			}
 
-			mappings, err := owner.ParseDir(dir, prefix)
+			mappings, err := owner.ParseDir(dir, prefix, dirOwner)
 			if err != nil {
 				return fmt.Errorf("scanning directory: %w", err)
 			}
@@ -40,6 +41,7 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	root.Flags().StringVar(&prefix, "prefix", owner.DefaultPrefix, "annotation prefix to search for")
+	root.Flags().StringVar(&dirOwner, "dirowner", owner.CodeOwnerFile, "filename for directory-level ownership")
 	root.AddCommand(newVersionCmd())
 
 	return root
