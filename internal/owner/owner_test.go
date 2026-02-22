@@ -227,35 +227,3 @@ func TestParseFile_RejectsNoAt(t *testing.T) {
 		t.Errorf("should reject owner without @ prefix, got %v", got)
 	}
 }
-
-func TestFormatCodeOwners(t *testing.T) {
-	mappings := []owner.Mapping{
-		// Intentionally unordered to verify sorting.
-		{Path: filepath.Join("src", "cmd", "main.go"), Owners: []string{"@backend"}},
-		{Path: "README.md", Owners: []string{"@docs"}},
-		{Path: filepath.Join(".github", "workflows", "ci.yml"), Owners: []string{"@devops"}},
-		{Path: filepath.Join("src", "cmd", "helper.go"), Owners: []string{"@backend"}},
-		{Path: filepath.Join("src", "lib", "utils.go"), Owners: []string{"@platform"}},
-		{Path: "Makefile", Owners: []string{"@infra"}},
-		{Path: filepath.Join(".github", "workflows", "deploy.yml"), Owners: []string{"@devops"}},
-		{Path: filepath.Join("web", "index.html"), Owners: []string{"@frontend"}},
-	}
-
-	got := owner.FormatCodeOwners(mappings)
-	want := "Makefile @infra\n" +
-		"README.md @docs\n" +
-		"\n" +
-		filepath.Join(".github", "workflows", "ci.yml") + " @devops\n" +
-		filepath.Join(".github", "workflows", "deploy.yml") + " @devops\n" +
-		"\n" +
-		filepath.Join("src", "cmd", "helper.go") + " @backend\n" +
-		filepath.Join("src", "cmd", "main.go") + " @backend\n" +
-		"\n" +
-		filepath.Join("src", "lib", "utils.go") + " @platform\n" +
-		"\n" +
-		filepath.Join("web", "index.html") + " @frontend\n"
-
-	if got != want {
-		t.Errorf("FormatCodeOwners:\ngot:\n%s\nwant:\n%s", got, want)
-	}
-}

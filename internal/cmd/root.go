@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/kevin-robayna/codeowner/internal/formatter"
 	"github.com/kevin-robayna/codeowner/internal/owner"
 	"github.com/spf13/cobra"
 )
@@ -33,7 +34,7 @@ func NewRootCmd() *cobra.Command {
 				return nil
 			}
 
-			fmt.Print(owner.FormatCodeOwners(mappings))
+			fmt.Print(formatter.CodeOwners(mappings))
 			return nil
 		},
 	}
