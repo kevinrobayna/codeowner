@@ -1,0 +1,15 @@
+<!-- CodeOwner: @xml_owner -->
+
+<!-- This is a single-line comment -->
+
+<!--
+  This is a multi-line
+  block comment in XML.
+-->
+
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <!-- Another single-line comment -->
+    <greeting lang="en">Hello, world!</greeting>  <!-- Inline comment -->
+    <value>42</value>
+</root>

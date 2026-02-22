@@ -1,0 +1,15 @@
+# CodeOwner: @yaml_owner
+
+# This is a single-line comment
+
+# YAML only supports single-line comments.
+# Use consecutive hash signs for blocks.
+
+app:
+  name: example  # Inline comment
+  version: "1.0.0"
+
+# Another single-line comment
+settings:
+  debug: true
+  port: 8080  # Inline comment

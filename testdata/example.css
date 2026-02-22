@@ -1,0 +1,22 @@
+/* CodeOwner: @css_owner */
+
+/* This is a single-line comment */
+
+/*
+ * This is a multi-line
+ * block comment in CSS.
+ */
+
+:root {
+    --color-primary: #333;  /* Inline comment */
+}
+
+/* Another single-line comment */
+body {
+    font-family: sans-serif;
+    color: var(--color-primary);
+}
+
+h1 {
+    font-size: 2rem;  /* Inline comment */
+}
