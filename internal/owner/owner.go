@@ -17,6 +17,9 @@ type Mapping struct {
 // DefaultPrefix is the default annotation prefix to search for.
 const DefaultPrefix = "CodeOwner:"
 
+// CodeOwnerFile is the name of the directory-level ownership file.
+const CodeOwnerFile = ".codeowner"
+
 // ParseFile reads a file and returns all code owners found in annotations
 // matching the given prefix. Owners can appear on one line
 // (CodeOwner: @a @b) or across multiple lines.
@@ -43,6 +46,34 @@ func ParseFile(path, prefix string) []string {
 	return owners
 }
 
+// ParseCodeOwnerFile reads a .codeowner file and returns valid owner handles.
+// Each line is split into whitespace-separated tokens; tokens must start with @
+// and pass validation. Duplicate owners are removed.
+func ParseCodeOwnerFile(path string) []string {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+
+	seen := make(map[string]struct{})
+	var owners []string
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		for _, token := range strings.Fields(scanner.Text()) {
+			if strings.HasPrefix(token, "@") && isValidOwner(token) {
+				if _, dup := seen[token]; !dup {
+					seen[token] = struct{}{}
+					owners = append(owners, token)
+				}
+			}
+		}
+	}
+
+	return owners
+}
+
 // ParseDir walks a directory and returns all CodeOwner mappings.
 func ParseDir(root, prefix string) ([]Mapping, error) {
 	var mappings []Mapping
@@ -58,17 +89,37 @@ func ParseDir(root, prefix string) ([]Mapping, error) {
 			return nil
 		}
 
-		if owners := ParseFile(path, prefix); len(owners) > 0 {
-			rel, relErr := filepath.Rel(root, path)
-			if relErr != nil {
-				rel = path
-			}
-			mappings = append(mappings, Mapping{Path: rel, Owners: owners})
+		if m, ok := parseEntry(root, path, d.Name(), prefix); ok {
+			mappings = append(mappings, m)
 		}
 		return nil
 	})
 
 	return mappings, err
+}
+
+// parseEntry handles a single file during directory walking, returning a
+// Mapping and true if ownership was found.
+func parseEntry(root, path, name, prefix string) (Mapping, bool) {
+	if name == CodeOwnerFile {
+		if owners := ParseCodeOwnerFile(path); len(owners) > 0 {
+			rel, relErr := filepath.Rel(root, filepath.Dir(path))
+			if relErr != nil {
+				rel = filepath.Dir(path)
+			}
+			return Mapping{Path: rel + "/**", Owners: owners}, true
+		}
+		return Mapping{}, false
+	}
+
+	if owners := ParseFile(path, prefix); len(owners) > 0 {
+		rel, relErr := filepath.Rel(root, path)
+		if relErr != nil {
+			rel = path
+		}
+		return Mapping{Path: rel, Owners: owners}, true
+	}
+	return Mapping{}, false
 }
 
 // extractOwners parses all @-prefixed tokens after the prefix on a line.

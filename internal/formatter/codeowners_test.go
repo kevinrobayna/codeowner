@@ -57,6 +57,26 @@ func TestCodeOwners_RootFilesGroupedTogether(t *testing.T) {
 	}
 }
 
+func TestCodeOwners_GlobPathsSortAndGroup(t *testing.T) {
+	mappings := []owner.Mapping{
+		{Path: filepath.Join("src", "cmd", "main.go"), Owners: []string{"@backend"}},
+		{Path: filepath.Join("src", "cmd") + "/**", Owners: []string{"@cmd-team"}},
+		{Path: "lib/**", Owners: []string{"@lib-team"}},
+		{Path: filepath.Join("lib", "utils.go"), Owners: []string{"@utils"}},
+	}
+
+	got := formatter.CodeOwners(mappings)
+	want := "lib/** @lib-team\n" +
+		filepath.Join("lib", "utils.go") + " @utils\n" +
+		"\n" +
+		filepath.Join("src", "cmd") + "/** @cmd-team\n" +
+		filepath.Join("src", "cmd", "main.go") + " @backend\n"
+
+	if got != want {
+		t.Errorf("CodeOwners:\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestCodeOwners_SameDirectoryNoBlankLines(t *testing.T) {
 	mappings := []owner.Mapping{
 		{Path: filepath.Join("testdata", "example.go"), Owners: []string{"@go_owner"}},

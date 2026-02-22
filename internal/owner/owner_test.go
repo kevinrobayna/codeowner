@@ -214,6 +214,130 @@ func TestParseFile_RejectsOwnerWithSpecialChars(t *testing.T) {
 	}
 }
 
+func TestParseCodeOwnerFile_SingleOwner(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".codeowner")
+	if err := os.WriteFile(path, []byte("@team-a\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := owner.ParseCodeOwnerFile(path)
+	want := []string{"@team-a"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestParseCodeOwnerFile_MultipleOwnersSpaceSeparated(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".codeowner")
+	if err := os.WriteFile(path, []byte("@team-a @team-b\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := owner.ParseCodeOwnerFile(path)
+	want := []string{"@team-a", "@team-b"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestParseCodeOwnerFile_MultipleOwnersMultiLine(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".codeowner")
+	if err := os.WriteFile(path, []byte("@team-a\n@team-b\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := owner.ParseCodeOwnerFile(path)
+	want := []string{"@team-a", "@team-b"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestParseCodeOwnerFile_Deduplication(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".codeowner")
+	if err := os.WriteFile(path, []byte("@team-a @team-a\n@team-a\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := owner.ParseCodeOwnerFile(path)
+	want := []string{"@team-a"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestParseCodeOwnerFile_InvalidOwnersIgnored(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".codeowner")
+	if err := os.WriteFile(path, []byte("@valid-team not-an-owner @bad!owner\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := owner.ParseCodeOwnerFile(path)
+	want := []string{"@valid-team"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestParseDir_CodeOwnerFile(t *testing.T) {
+	dir := testdataDir()
+
+	mappings, err := owner.ParseDir(dir, owner.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("ParseDir(%s) error: %v", dir, err)
+	}
+
+	found := make(map[string][]string)
+	for _, m := range mappings {
+		found[m.Path] = m.Owners
+	}
+
+	// .codeowner file should produce a dir/** mapping
+	dirOwnerPath := "dirowner/**"
+	if got, ok := found[dirOwnerPath]; !ok {
+		t.Errorf("missing mapping for %s", dirOwnerPath)
+	} else if !slices.Equal(got, []string{"@dir-owner"}) {
+		t.Errorf("mapping for %s = %v, want %v", dirOwnerPath, got, []string{"@dir-owner"})
+	}
+
+	// Regular file in same directory should still be parsed normally
+	appPath := filepath.Join("dirowner", "app.go")
+	if got, ok := found[appPath]; !ok {
+		t.Errorf("missing mapping for %s", appPath)
+	} else if !slices.Equal(got, []string{"@app-team"}) {
+		t.Errorf("mapping for %s = %v, want %v", appPath, got, []string{"@app-team"})
+	}
+
+	// Nested .codeowner should produce its own dir/** mapping
+	subPath := filepath.Join("dirowner", "sub") + "/**"
+	if got, ok := found[subPath]; !ok {
+		t.Errorf("missing mapping for %s", subPath)
+	} else if !slices.Equal(got, []string{"@sub-team"}) {
+		t.Errorf("mapping for %s = %v, want %v", subPath, got, []string{"@sub-team"})
+	}
+
+	// Annotated file alongside nested .codeowner
+	handlerPath := filepath.Join("dirowner", "sub", "handler.go")
+	if got, ok := found[handlerPath]; !ok {
+		t.Errorf("missing mapping for %s", handlerPath)
+	} else if !slices.Equal(got, []string{"@handler-team"}) {
+		t.Errorf("mapping for %s = %v, want %v", handlerPath, got, []string{"@handler-team"})
+	}
+
+	// Deeper nested file without its own .codeowner
+	utilPath := filepath.Join("dirowner", "sub", "deep", "util.go")
+	if got, ok := found[utilPath]; !ok {
+		t.Errorf("missing mapping for %s", utilPath)
+	} else if !slices.Equal(got, []string{"@util-team"}) {
+		t.Errorf("mapping for %s = %v, want %v", utilPath, got, []string{"@util-team"})
+	}
+}
+
 func TestParseFile_RejectsNoAt(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "noat.py")
