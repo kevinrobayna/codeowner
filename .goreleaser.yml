@@ -46,18 +46,18 @@ changelog:
       - "^ci:"
       - "^chore:"
 
-homebrew_casks:
+brews:
   - name: codeowner
     repository:
       owner: kevinrobayna
       name: homebrew-tap
       branch: main
       token: "{{ .Env.HOMEBREW_TAPS_PAT }}"
-    directory: Casks
+    directory: Formula
     homepage: "https://github.com/kevinrobayna/codeowner"
     description: "A CLI tool for working with CODEOWNERS files"
     license: "MIT"
     commit_author:
       name: goreleaserbot
-      email: bot@goreleaser.com
+      email: github@kevinrobayna.com
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
