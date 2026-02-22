@@ -42,13 +42,19 @@ func CodeOwners(mappings []owner.Mapping) string {
 	return b.String()
 }
 
+// stripRoot removes the leading "/" root-anchor prefix from a CODEOWNERS path.
+func stripRoot(path string) string {
+	return strings.TrimPrefix(path, "/")
+}
+
 // pathSection returns the sort section for a path:
 // 0 for root-level files, 1 for hidden directories, 2 for everything else.
 func pathSection(path string) int {
-	if !strings.Contains(path, string(filepath.Separator)) {
+	p := stripRoot(path)
+	if !strings.Contains(p, string(filepath.Separator)) {
 		return 0
 	}
-	first := strings.SplitN(path, string(filepath.Separator), 2)[0]
+	first := strings.SplitN(p, string(filepath.Separator), 2)[0]
 	if strings.HasPrefix(first, ".") {
 		return 1
 	}
@@ -59,7 +65,8 @@ func pathSection(path string) int {
 // structure: "" for root files, the first directory for single-depth paths,
 // or the first two directories for deeper paths.
 func groupKey(path string) string {
-	dir := filepath.Dir(path)
+	p := stripRoot(path)
+	dir := filepath.Dir(p)
 	if dir == "." {
 		return ""
 	}
