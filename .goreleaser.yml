@@ -1,4 +1,9 @@
 version: 2
+gomod:
+  proxy: true
+  env:
+    - GOPROXY=https://proxy.golang.org,direct
+    - GOSUMDB=sum.golang.org
 builds:
   - id: codeowner
     main: ./cmd/codeowner
@@ -21,7 +26,7 @@ builds:
       - arm64
 archives:
   - id: codeowner-archive
-    builds:
+    ids:
       - codeowner
     name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
     format_overrides:
@@ -41,22 +46,30 @@ changelog:
       - '^test:'
       - '^ci:'
       - '^chore:'
-brews:
+signs:
+  - cmd: cosign
+    artifacts: all
+    certificate: '${artifact}.pem'
+    args:
+      - sign-blob
+      - '--output-certificate=${certificate}'
+      - '--output-signature=${signature}'
+      - '${artifact}'
+      - '--yes'
+    output: true
+homebrew_casks:
   - name: codeowner
+    binaries:
+      - codeowner
+    homepage: https://github.com/kevinrobayna/codeowner
+    description: A CLI tool for working with CODEOWNERS files
+    commit_msg_template: Brew cask update for {{ .ProjectName }} version {{ .Tag }}
+    directory: Casks
     repository:
       owner: kevinrobayna
       name: homebrew-tap
       branch: main
       token: '{{ .Env.HOMEBREW_TAPS_PAT }}'
-    directory: Formula
-    homepage: https://github.com/kevinrobayna/codeowner
-    description: A CLI tool for working with CODEOWNERS files
-    license: MIT
-    install: |
-      bin.install "codeowner"
-    test: |
-      system "#{bin}/codeowner", "version"
     commit_author:
       name: goreleaserbot
       email: github@kevinrobayna.com
-    commit_msg_template: Brew formula update for {{ .ProjectName }} version {{ .Tag }}
