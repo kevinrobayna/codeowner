@@ -58,10 +58,7 @@ func ParseFile(path, prefix string) ([]string, error) {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		for _, o := range extractOwners(scanner.Text(), prefix) {
-			if _, dup := seen[o]; !dup {
-				seen[o] = struct{}{}
-				owners = append(owners, o)
-			}
+			owners = appendUnique(seen, owners, o)
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -88,10 +85,7 @@ func ParseCodeOwnerFile(path string) ([]string, error) {
 	for scanner.Scan() {
 		for _, token := range strings.Fields(scanner.Text()) {
 			if strings.HasPrefix(token, "@") && isValidOwner(token) {
-				if _, dup := seen[token]; !dup {
-					seen[token] = struct{}{}
-					owners = append(owners, token)
-				}
+				owners = appendUnique(seen, owners, token)
 			}
 		}
 	}
@@ -200,6 +194,15 @@ func extractOwners(line, prefix string) []string {
 		}
 	}
 
+	return owners
+}
+
+// appendUnique appends token to owners if it has not been seen before.
+func appendUnique(seen map[string]struct{}, owners []string, token string) []string {
+	if _, dup := seen[token]; !dup {
+		seen[token] = struct{}{}
+		owners = append(owners, token)
+	}
 	return owners
 }
 
