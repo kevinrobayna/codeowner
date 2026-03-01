@@ -39,6 +39,27 @@ make test
 
 Runs `go test -race -cover ./...` across all packages.
 
+### Test Parallelization
+
+Always use `t.Parallel()` in tests. Every top-level test function and subtest should call `t.Parallel()` unless it modifies process-global state (e.g., `os.Chdir()`, `os.Setenv()`).
+
+```go
+func TestFeature(t *testing.T) {
+    t.Parallel()
+    // ...
+}
+
+func TestFeature_Subtests(t *testing.T) {
+    t.Parallel()
+    for _, tc := range testCases {
+        t.Run(tc.name, func(t *testing.T) {
+            t.Parallel()
+            // ...
+        })
+    }
+}
+```
+
 ### Linting and Formatting
 
 ```bash
