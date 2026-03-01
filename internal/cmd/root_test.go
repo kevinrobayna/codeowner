@@ -8,6 +8,78 @@ import (
 	"testing"
 )
 
+func TestExecute(t *testing.T) {
+	t.Parallel()
+
+	// Execute() calls NewRootCmd().Execute() with no args, scanning ".".
+	// We just verify it doesn't panic or return an unexpected error.
+	_ = Execute()
+}
+
+func TestRootCmd_VersionSubcommand(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	cmd := NewRootCmd()
+	cmd.SetOut(&buf)
+	cmd.SetArgs([]string{"version"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.Contains(got, "codeowner") {
+		t.Errorf("version output should contain 'codeowner', got: %s", got)
+	}
+}
+
+func TestRootCmd_NoAnnotationsFound(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "empty.txt"), []byte("no annotations here\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout, stderr bytes.Buffer
+	cmd := NewRootCmd()
+	cmd.SetOut(&stdout)
+	cmd.SetErr(&stderr)
+	cmd.SetArgs([]string{dir})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if stdout.Len() > 0 {
+		t.Errorf("expected no stdout output, got: %s", stdout.String())
+	}
+	if !strings.Contains(stderr.String(), "no CodeOwner annotations found") {
+		t.Errorf("expected stderr message about no annotations, got: %s", stderr.String())
+	}
+}
+
+func TestRootCmd_InvalidDirectory(t *testing.T) {
+	t.Parallel()
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"/nonexistent/path/that/does/not/exist"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for non-existent directory")
+	}
+}
+
+func TestRootCmd_TooManyArgs(t *testing.T) {
+	t.Parallel()
+
+	cmd := NewRootCmd()
+	cmd.SetArgs([]string{"arg1", "arg2"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error for too many arguments")
+	}
+}
+
 func TestRootCmd_Protect(t *testing.T) {
 	t.Parallel()
 

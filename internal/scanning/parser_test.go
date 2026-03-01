@@ -593,6 +593,132 @@ func TestOpenError(t *testing.T) {
 	}
 }
 
+func TestParseDir_RootCodeOwnerFile(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, ".codeowner"), []byte("@root-team\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte("// CodeOwner: @backend\npackage main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := make(map[string][]string)
+	for _, m := range mappings {
+		found[m.Path] = m.Owners
+	}
+
+	if got, ok := found["/"]; !ok {
+		t.Error("missing mapping for root /")
+	} else if !slices.Equal(got, []string{"@root-team"}) {
+		t.Errorf("root mapping = %v, want %v", got, []string{"@root-team"})
+	}
+
+	if got, ok := found["/main.go"]; !ok {
+		t.Error("missing mapping for /main.go")
+	} else if !slices.Equal(got, []string{"@backend"}) {
+		t.Errorf("/main.go mapping = %v, want %v", got, []string{"@backend"})
+	}
+}
+
+func TestParseDir_EmptyCodeOwnerFile(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, ".codeowner"), []byte("not-an-owner\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	for _, m := range mappings {
+		if m.Path == "/" {
+			t.Errorf("should not produce mapping for .codeowner with no valid owners, got %v", m)
+		}
+	}
+}
+
+func TestParseDir_UnreadableFile(t *testing.T) {
+	t.Parallel()
+
+	if runtime.GOOS == "windows" {
+		t.Skip("file permission tests not reliable on Windows")
+	}
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "secret.go")
+	if err := os.WriteFile(path, []byte("// CodeOwner: @team\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(path, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(path, 0o644) })
+
+	_, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
+	if err == nil {
+		t.Error("expected error for unreadable file")
+	}
+}
+
+func TestParseDir_UnreadableCodeOwnerFile(t *testing.T) {
+	t.Parallel()
+
+	if runtime.GOOS == "windows" {
+		t.Skip("file permission tests not reliable on Windows")
+	}
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".codeowner")
+	if err := os.WriteFile(path, []byte("@team\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(path, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(path, 0o644) })
+
+	_, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
+	if err == nil {
+		t.Error("expected error for unreadable .codeowner file")
+	}
+}
+
+func TestParseDir_UnreadableSubdirectory(t *testing.T) {
+	t.Parallel()
+
+	if runtime.GOOS == "windows" {
+		t.Skip("directory permission tests not reliable on Windows")
+	}
+
+	dir := t.TempDir()
+	sub := filepath.Join(dir, "restricted")
+	if err := os.Mkdir(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(sub, "file.go"), []byte("// CodeOwner: @team\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(sub, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(sub, 0o755) })
+
+	_, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
+	if err == nil {
+		t.Error("expected error for unreadable subdirectory")
+	}
+}
+
 func TestParseFile_RejectsNoAt(t *testing.T) {
 	t.Parallel()
 

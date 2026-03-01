@@ -28,7 +28,7 @@ jobs:
         run: go install gotest.tools/gotestsum@latest
 
       - name: Test
-        run: gotestsum --format github-actions --junitfile test-results.xml -- -race -cover ./...
+        run: gotestsum --format github-actions --junitfile test-results.xml -- -race -coverprofile=coverage.out ./...
 
       - name: Upload test results
         if: always()
@@ -36,6 +36,15 @@ jobs:
         with:
           name: test-results-${{ matrix.os }}-go${{ matrix.go-version }}
           path: test-results.xml
+
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.out
+          flags: ${{ matrix.os }}-go${{ matrix.go-version }}
+          fail_ci_if_error: false
 
       - name: Test summary
         if: always()
