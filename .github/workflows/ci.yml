@@ -47,6 +47,13 @@ jobs:
           flags: ${{ matrix.os }}-go${{ matrix.go-version }}
           fail_ci_if_error: false
 
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          report-type: test_results
+
       - name: Test summary
         if: always()
         uses: test-summary/action@v2
