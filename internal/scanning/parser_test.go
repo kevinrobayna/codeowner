@@ -518,6 +518,76 @@ func TestParseDir_SkipsSymlinks(t *testing.T) {
 	}
 }
 
+func TestParseDir_SkipsGitDirectory(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+
+	// Create a .git directory with a file containing a CodeOwner annotation.
+	gitDir := filepath.Join(dir, ".git")
+	if err := os.Mkdir(gitDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(gitDir, "config.go"), []byte("// CodeOwner: @git-team\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a normal file for comparison.
+	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte("// CodeOwner: @real-team\npackage main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := make(map[string]bool)
+	for _, m := range mappings {
+		found[m.Path] = true
+	}
+
+	if found["/.git/config.go"] {
+		t.Error("files inside .git/ should be skipped")
+	}
+	if !found["/main.go"] {
+		t.Error("normal files should still be parsed")
+	}
+}
+
+func TestParseDir_EmptyFile(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+
+	// Create an empty file — exercises the io.EOF path in binary sniffing.
+	if err := os.WriteFile(filepath.Join(dir, "empty.go"), []byte{}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a normal file for comparison.
+	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte("// CodeOwner: @team\npackage main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := make(map[string]bool)
+	for _, m := range mappings {
+		found[m.Path] = true
+	}
+
+	if found["/empty.go"] {
+		t.Error("empty file should not produce a mapping")
+	}
+	if !found["/main.go"] {
+		t.Error("normal file should still be parsed")
+	}
+}
+
 func TestParseFile_RejectsBareAt(t *testing.T) {
 	t.Parallel()
 
