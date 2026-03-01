@@ -9,30 +9,21 @@ import (
 )
 
 func TestRootCmd_Protect(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte("// CodeOwner: @backend\npackage main\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
+	var buf bytes.Buffer
 	cmd := NewRootCmd()
+	cmd.SetOut(&buf)
 	cmd.SetArgs([]string{"--protect", "@admin @platform", dir})
 	if err := cmd.Execute(); err != nil {
-		w.Close()
-		os.Stdout = old
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	w.Close()
-	os.Stdout = old
-
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatal(err)
-	}
 	got := buf.String()
 
 	if !strings.HasPrefix(got, "CODEOWNERS @admin @platform\n") {
@@ -44,6 +35,8 @@ func TestRootCmd_Protect(t *testing.T) {
 }
 
 func TestRootCmd_ProtectInvalidOwner(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte("// CodeOwner: @backend\npackage main\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -61,30 +54,21 @@ func TestRootCmd_ProtectInvalidOwner(t *testing.T) {
 }
 
 func TestRootCmd_NoProtect(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte("// CodeOwner: @backend\npackage main\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-
+	var buf bytes.Buffer
 	cmd := NewRootCmd()
+	cmd.SetOut(&buf)
 	cmd.SetArgs([]string{dir})
 	if err := cmd.Execute(); err != nil {
-		w.Close()
-		os.Stdout = old
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	w.Close()
-	os.Stdout = old
-
-	var buf bytes.Buffer
-	if _, err := buf.ReadFrom(r); err != nil {
-		t.Fatal(err)
-	}
 	got := buf.String()
 
 	if strings.Contains(got, "CODEOWNERS") {

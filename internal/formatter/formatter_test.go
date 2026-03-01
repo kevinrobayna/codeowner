@@ -9,6 +9,8 @@ import (
 )
 
 func TestCodeOwners(t *testing.T) {
+	t.Parallel()
+
 	mappings := []scanning.Mapping{
 		// Intentionally unordered to verify sorting.
 		{Path: "/" + filepath.Join("src", "cmd", "main.go"), Owners: []string{"@backend"}},
@@ -41,6 +43,8 @@ func TestCodeOwners(t *testing.T) {
 }
 
 func TestCodeOwners_RootFilesGroupedTogether(t *testing.T) {
+	t.Parallel()
+
 	mappings := []scanning.Mapping{
 		{Path: "/README.md", Owners: []string{"@docs"}},
 		{Path: "/LICENSE.txt", Owners: []string{"@legal"}},
@@ -58,6 +62,8 @@ func TestCodeOwners_RootFilesGroupedTogether(t *testing.T) {
 }
 
 func TestCodeOwners_DirOwnerPathsSortAndGroup(t *testing.T) {
+	t.Parallel()
+
 	mappings := []scanning.Mapping{
 		{Path: "/" + filepath.Join("src", "cmd", "main.go"), Owners: []string{"@backend"}},
 		{Path: "/" + filepath.Join("src", "cmd") + "/", Owners: []string{"@cmd-team"}},
@@ -78,6 +84,8 @@ func TestCodeOwners_DirOwnerPathsSortAndGroup(t *testing.T) {
 }
 
 func TestCodeOwners_ProtectMapping(t *testing.T) {
+	t.Parallel()
+
 	mappings := []scanning.Mapping{
 		{Path: "/README.md", Owners: []string{"@docs"}},
 		{Path: "/Makefile", Owners: []string{"@infra"}},
@@ -96,6 +104,8 @@ func TestCodeOwners_ProtectMapping(t *testing.T) {
 }
 
 func TestCodeOwners_SameDirectoryNoBlankLines(t *testing.T) {
+	t.Parallel()
+
 	mappings := []scanning.Mapping{
 		{Path: "/" + filepath.Join("testdata", "example.go"), Owners: []string{"@go_owner"}},
 		{Path: "/" + filepath.Join("testdata", "example.py"), Owners: []string{"@python_owner"}},

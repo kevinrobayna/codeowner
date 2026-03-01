@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/kevin-robayna/codeowner/internal/formatter"
 	"github.com/kevin-robayna/codeowner/internal/scanning"
@@ -20,7 +19,7 @@ func NewRootCmd() *cobra.Command {
 		Long:         "A CLI tool that scans source files for CodeOwner annotations and prints a CODEOWNERS file.",
 		SilenceUsage: true,
 		Args:         cobra.MaximumNArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			dir := "."
 			if len(args) > 0 {
 				dir = args[0]
@@ -40,11 +39,11 @@ func NewRootCmd() *cobra.Command {
 			}
 
 			if len(mappings) == 0 {
-				fmt.Fprintln(os.Stderr, "no CodeOwner annotations found")
+				cmd.PrintErrln("no CodeOwner annotations found")
 				return nil
 			}
 
-			fmt.Print(formatter.CodeOwners(mappings))
+			cmd.Print(formatter.CodeOwners(mappings))
 			return nil
 		},
 	}
