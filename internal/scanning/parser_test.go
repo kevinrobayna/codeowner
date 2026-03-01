@@ -719,75 +719,71 @@ func TestParseDir_UnreadableSubdirectory(t *testing.T) {
 	}
 }
 
-func TestParseDir_SkipsLargeFiles(t *testing.T) {
+func TestParseDir_SkipsNonTextFiles(t *testing.T) {
 	t.Parallel()
 
-	dir := t.TempDir()
-
-	// Create a file larger than 1 MB with a CodeOwner annotation at the start.
-	var content []byte
-	content = append(content, []byte("// CodeOwner: @large-file-team\n")...)
-	for len(content) <= 1024*1024 {
-		content = append(content, []byte("// padding line\n")...)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "huge.go"), content, 0o644); err != nil {
-		t.Fatal(err)
+	makeLargeContent := func() []byte {
+		var content []byte
+		content = append(content, []byte("// CodeOwner: @large-file-team\n")...)
+		for len(content) <= 1024*1024 {
+			content = append(content, []byte("// padding line\n")...)
+		}
+		return content
 	}
 
-	// Create a normal small file for comparison.
-	if err := os.WriteFile(filepath.Join(dir, "small.go"), []byte("// CodeOwner: @small-team\npackage main\n"), 0o644); err != nil {
-		t.Fatal(err)
+	testCases := []struct {
+		name        string
+		skipFile    string
+		skipContent []byte
+		goodFile    string
+		goodContent []byte
+	}{
+		{
+			name:        "large file over 1MB",
+			skipFile:    "huge.go",
+			skipContent: makeLargeContent(),
+			goodFile:    "small.go",
+			goodContent: []byte("// CodeOwner: @small-team\npackage main\n"),
+		},
+		{
+			name:        "binary file with null bytes",
+			skipFile:    "image.dat",
+			skipContent: []byte("// CodeOwner: @binary-team\n\x00\x00\x00binary content\n"),
+			goodFile:    "normal.go",
+			goodContent: []byte("// CodeOwner: @text-team\npackage main\n"),
+		},
 	}
 
-	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 
-	found := make(map[string]bool)
-	for _, m := range mappings {
-		found[m.Path] = true
-	}
+			dir := t.TempDir()
 
-	if found["/huge.go"] {
-		t.Error("large file /huge.go should be skipped")
-	}
-	if !found["/small.go"] {
-		t.Error("small file /small.go should still be parsed")
-	}
-}
+			if err := os.WriteFile(filepath.Join(dir, tc.skipFile), tc.skipContent, 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(dir, tc.goodFile), tc.goodContent, 0o644); err != nil {
+				t.Fatal(err)
+			}
 
-func TestParseDir_SkipsBinaryFiles(t *testing.T) {
-	t.Parallel()
+			mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 
-	dir := t.TempDir()
+			found := make(map[string]bool)
+			for _, m := range mappings {
+				found[m.Path] = true
+			}
 
-	// Create a file with null bytes (binary) that also has a CodeOwner annotation.
-	content := []byte("// CodeOwner: @binary-team\n\x00\x00\x00binary content\n")
-	if err := os.WriteFile(filepath.Join(dir, "image.dat"), content, 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	// Create a normal text file for comparison.
-	if err := os.WriteFile(filepath.Join(dir, "normal.go"), []byte("// CodeOwner: @text-team\npackage main\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	found := make(map[string]bool)
-	for _, m := range mappings {
-		found[m.Path] = true
-	}
-
-	if found["/image.dat"] {
-		t.Error("binary file /image.dat should be skipped")
-	}
-	if !found["/normal.go"] {
-		t.Error("text file /normal.go should still be parsed")
+			if found["/"+tc.skipFile] {
+				t.Errorf("file /%s should be skipped", tc.skipFile)
+			}
+			if !found["/"+tc.goodFile] {
+				t.Errorf("file /%s should still be parsed", tc.goodFile)
+			}
+		})
 	}
 }
 
