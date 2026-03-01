@@ -230,6 +230,23 @@ func TestParseFile_RejectsPrefixNotPrecededBySpace(t *testing.T) {
 	}
 }
 
+func TestParseFile_TabBeforePrefix(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "tabbed.py")
+	content := "\tCodeOwner: @tab-team\nx = 1\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	want := []string{"@tab-team"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 func TestParseFile_RejectsOwnerWithSpecialChars(t *testing.T) {
 	t.Parallel()
 

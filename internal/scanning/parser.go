@@ -159,8 +159,8 @@ func extractOwners(line, prefix string) []string {
 		return nil
 	}
 
-	// The prefix must be at the start of the line or preceded by a space.
-	if idx > 0 && line[idx-1] != ' ' {
+	// The prefix must be at the start of the line or preceded by whitespace.
+	if idx > 0 && line[idx-1] != ' ' && line[idx-1] != '\t' {
 		return nil
 	}
 
