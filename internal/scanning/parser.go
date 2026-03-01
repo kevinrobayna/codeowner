@@ -48,7 +48,7 @@ func ParseProtect(s string) (Mapping, error) {
 func ParseFile(path, prefix string) ([]string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	defer f.Close()
 
@@ -77,7 +77,7 @@ func ParseFile(path, prefix string) ([]string, error) {
 func ParseCodeOwnerFile(path string) ([]string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	defer f.Close()
 
