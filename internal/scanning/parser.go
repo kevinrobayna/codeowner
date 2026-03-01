@@ -2,12 +2,23 @@ package scanning
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+// maxFileSize is the maximum file size (1 MB) that ParseDir will scan.
+// Files larger than this are skipped to avoid wasting time on binaries or
+// generated artifacts.
+const maxFileSize = 1 << 20
+
+// binarySniffSize is the number of bytes read to detect binary content.
+const binarySniffSize = 512
 
 // Mapping holds a file path and its code owners.
 type Mapping struct {
@@ -133,11 +144,49 @@ func ParseDir(root, prefix, dirOwnerFile string) ([]Mapping, error) {
 	return mappings, err
 }
 
+// shouldSkipFile reports whether a file should be skipped during directory
+// scanning. It skips files larger than maxFileSize and binary files (detected
+// by the presence of null bytes in the first binarySniffSize bytes).
+func shouldSkipFile(path string, info fs.FileInfo) (bool, error) {
+	if info.Size() > maxFileSize {
+		return true, nil
+	}
+
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	buf := make([]byte, binarySniffSize)
+	n, err := f.Read(buf)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return false, err
+	}
+	if bytes.ContainsRune(buf[:n], 0) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // parseEntry handles a single file during directory walking, returning a
 // Mapping and true if ownership was found.
 func parseEntry(root, path, name, prefix, dirOwnerFile string) (Mapping, bool, error) {
 	if name == dirOwnerFile {
 		return parseDirOwnerEntry(root, path)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return Mapping{}, false, err
+	}
+	skip, err := shouldSkipFile(path, info)
+	if err != nil {
+		return Mapping{}, false, err
+	}
+	if skip {
+		return Mapping{}, false, nil
 	}
 
 	owners, err := ParseFile(path, prefix)

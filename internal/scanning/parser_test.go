@@ -719,6 +719,78 @@ func TestParseDir_UnreadableSubdirectory(t *testing.T) {
 	}
 }
 
+func TestParseDir_SkipsLargeFiles(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+
+	// Create a file larger than 1 MB with a CodeOwner annotation at the start.
+	var content []byte
+	content = append(content, []byte("// CodeOwner: @large-file-team\n")...)
+	for len(content) <= 1024*1024 {
+		content = append(content, []byte("// padding line\n")...)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "huge.go"), content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a normal small file for comparison.
+	if err := os.WriteFile(filepath.Join(dir, "small.go"), []byte("// CodeOwner: @small-team\npackage main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := make(map[string]bool)
+	for _, m := range mappings {
+		found[m.Path] = true
+	}
+
+	if found["/huge.go"] {
+		t.Error("large file /huge.go should be skipped")
+	}
+	if !found["/small.go"] {
+		t.Error("small file /small.go should still be parsed")
+	}
+}
+
+func TestParseDir_SkipsBinaryFiles(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+
+	// Create a file with null bytes (binary) that also has a CodeOwner annotation.
+	content := []byte("// CodeOwner: @binary-team\n\x00\x00\x00binary content\n")
+	if err := os.WriteFile(filepath.Join(dir, "image.dat"), content, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a normal text file for comparison.
+	if err := os.WriteFile(filepath.Join(dir, "normal.go"), []byte("// CodeOwner: @text-team\npackage main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := make(map[string]bool)
+	for _, m := range mappings {
+		found[m.Path] = true
+	}
+
+	if found["/image.dat"] {
+		t.Error("binary file /image.dat should be skipped")
+	}
+	if !found["/normal.go"] {
+		t.Error("text file /normal.go should still be parsed")
+	}
+}
+
 func TestParseFile_RejectsNoAt(t *testing.T) {
 	t.Parallel()
 
