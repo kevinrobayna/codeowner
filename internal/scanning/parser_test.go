@@ -517,6 +517,39 @@ func TestParseProtect_RejectsEmptyInput(t *testing.T) {
 	}
 }
 
+func TestOpenError(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name string
+		fn   func() error
+	}{
+		{
+			name: "ParseFile with non-existent path",
+			fn: func() error {
+				_, err := scanning.ParseFile("/nonexistent/path/file.go", scanning.DefaultPrefix)
+				return err
+			},
+		},
+		{
+			name: "ParseCodeOwnerFile with non-existent path",
+			fn: func() error {
+				_, err := scanning.ParseCodeOwnerFile("/nonexistent/path/.codeowner")
+				return err
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if err := tc.fn(); err == nil {
+				t.Error("expected error for non-existent file")
+			}
+		})
+	}
+}
+
 func TestParseFile_RejectsNoAt(t *testing.T) {
 	t.Parallel()
 
