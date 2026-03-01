@@ -16,6 +16,8 @@ func testdataDir() string {
 }
 
 func TestParseFile(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		file   string
 		owners []string
@@ -56,6 +58,8 @@ func TestParseFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.file, func(t *testing.T) {
+			t.Parallel()
+
 			path := filepath.Join(dir, tt.file)
 			got := scanning.ParseFile(path, scanning.DefaultPrefix)
 			if len(got) == 0 {
@@ -69,6 +73,8 @@ func TestParseFile(t *testing.T) {
 }
 
 func TestParseFile_NoAnnotation(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, "empty.py")
 	if err := os.WriteFile(path, []byte("# just a regular comment\nx = 1\n"), 0o644); err != nil {
@@ -82,6 +88,8 @@ func TestParseFile_NoAnnotation(t *testing.T) {
 }
 
 func TestParseFile_MultipleOwnersOneLine(t *testing.T) {
+	t.Parallel()
+
 	path := filepath.Join(testdataDir(), "multi_owners_single_line.py")
 	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	want := []string{"@team-a", "@team-b", "@person-c"}
@@ -91,6 +99,8 @@ func TestParseFile_MultipleOwnersOneLine(t *testing.T) {
 }
 
 func TestParseFile_MultipleOwnersMultipleLines(t *testing.T) {
+	t.Parallel()
+
 	path := filepath.Join(testdataDir(), "multi_owners_multi_line.py")
 	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	want := []string{"@team-frontend", "@team-backend"}
@@ -100,6 +110,8 @@ func TestParseFile_MultipleOwnersMultipleLines(t *testing.T) {
 }
 
 func TestParseFile_DeduplicatesOwners(t *testing.T) {
+	t.Parallel()
+
 	path := filepath.Join(testdataDir(), "multi_owners_deduplicated.py")
 	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	want := []string{"@team-a"}
@@ -109,6 +121,8 @@ func TestParseFile_DeduplicatesOwners(t *testing.T) {
 }
 
 func TestParseDir(t *testing.T) {
+	t.Parallel()
+
 	dir := testdataDir()
 
 	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
@@ -147,6 +161,8 @@ func TestParseDir(t *testing.T) {
 }
 
 func TestParseFile_CustomPrefix(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, "main.go")
 	content := "// Owner: @team-backend\npackage main\n"
@@ -167,6 +183,8 @@ func TestParseFile_CustomPrefix(t *testing.T) {
 }
 
 func TestParseFile_RejectsNoSpace(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, "nospace.py")
 	content := "# CodeOwner:@team\nx = 1\n"
@@ -181,6 +199,8 @@ func TestParseFile_RejectsNoSpace(t *testing.T) {
 }
 
 func TestParseFile_OrgTeamOwner(t *testing.T) {
+	t.Parallel()
+
 	path := filepath.Join(testdataDir(), "org_team_owner.py")
 	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	want := []string{"@myorg/backend-team"}
@@ -190,6 +210,8 @@ func TestParseFile_OrgTeamOwner(t *testing.T) {
 }
 
 func TestParseFile_OrgTeamMultipleOwners(t *testing.T) {
+	t.Parallel()
+
 	path := filepath.Join(testdataDir(), "org_team_multiple_owners.js")
 	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	want := []string{"@myorg/frontend-team", "@myorg/design-team", "@individual-dev"}
@@ -199,6 +221,8 @@ func TestParseFile_OrgTeamMultipleOwners(t *testing.T) {
 }
 
 func TestParseFile_RejectsPrefixNotPrecededBySpace(t *testing.T) {
+	t.Parallel()
+
 	path := filepath.Join(testdataDir(), "invalid_prefix_not_preceded_by_space.md")
 	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	if len(got) > 0 {
@@ -207,6 +231,8 @@ func TestParseFile_RejectsPrefixNotPrecededBySpace(t *testing.T) {
 }
 
 func TestParseFile_RejectsOwnerWithSpecialChars(t *testing.T) {
+	t.Parallel()
+
 	path := filepath.Join(testdataDir(), "invalid_owner_special_chars.txt")
 	got := scanning.ParseFile(path, scanning.DefaultPrefix)
 	if len(got) > 0 {
@@ -215,6 +241,8 @@ func TestParseFile_RejectsOwnerWithSpecialChars(t *testing.T) {
 }
 
 func TestParseCodeOwnerFile_SingleOwner(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, ".codeowner")
 	if err := os.WriteFile(path, []byte("@team-a\n"), 0o644); err != nil {
@@ -229,6 +257,8 @@ func TestParseCodeOwnerFile_SingleOwner(t *testing.T) {
 }
 
 func TestParseCodeOwnerFile_MultipleOwnersSpaceSeparated(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, ".codeowner")
 	if err := os.WriteFile(path, []byte("@team-a @team-b\n"), 0o644); err != nil {
@@ -243,6 +273,8 @@ func TestParseCodeOwnerFile_MultipleOwnersSpaceSeparated(t *testing.T) {
 }
 
 func TestParseCodeOwnerFile_MultipleOwnersMultiLine(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, ".codeowner")
 	if err := os.WriteFile(path, []byte("@team-a\n@team-b\n"), 0o644); err != nil {
@@ -257,6 +289,8 @@ func TestParseCodeOwnerFile_MultipleOwnersMultiLine(t *testing.T) {
 }
 
 func TestParseCodeOwnerFile_Deduplication(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, ".codeowner")
 	if err := os.WriteFile(path, []byte("@team-a @team-a\n@team-a\n"), 0o644); err != nil {
@@ -271,6 +305,8 @@ func TestParseCodeOwnerFile_Deduplication(t *testing.T) {
 }
 
 func TestParseCodeOwnerFile_InvalidOwnersIgnored(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, ".codeowner")
 	if err := os.WriteFile(path, []byte("@valid-team not-an-owner @bad!owner\n"), 0o644); err != nil {
@@ -285,6 +321,8 @@ func TestParseCodeOwnerFile_InvalidOwnersIgnored(t *testing.T) {
 }
 
 func TestParseDir_CodeOwnerFile(t *testing.T) {
+	t.Parallel()
+
 	dir := testdataDir()
 
 	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
@@ -339,6 +377,8 @@ func TestParseDir_CodeOwnerFile(t *testing.T) {
 }
 
 func TestParseProtect(t *testing.T) {
+	t.Parallel()
+
 	m, err := scanning.ParseProtect("@admin @platform-team")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -353,6 +393,8 @@ func TestParseProtect(t *testing.T) {
 }
 
 func TestParseProtect_InvalidNoAt(t *testing.T) {
+	t.Parallel()
+
 	_, err := scanning.ParseProtect("admin")
 	if err == nil {
 		t.Fatal("expected error for owner without @")
@@ -360,6 +402,8 @@ func TestParseProtect_InvalidNoAt(t *testing.T) {
 }
 
 func TestParseProtect_InvalidChars(t *testing.T) {
+	t.Parallel()
+
 	_, err := scanning.ParseProtect("@bad!owner")
 	if err == nil {
 		t.Fatal("expected error for owner with invalid characters")
@@ -367,6 +411,8 @@ func TestParseProtect_InvalidChars(t *testing.T) {
 }
 
 func TestParseFile_RejectsNoAt(t *testing.T) {
+	t.Parallel()
+
 	dir := t.TempDir()
 	path := filepath.Join(dir, "noat.py")
 	content := "# CodeOwner: team-backend\nx = 1\n"
