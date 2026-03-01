@@ -26,6 +26,9 @@ const CodeOwnerFile = ".codeowner"
 // start with @ and contain only valid characters.
 func ParseProtect(s string) (Mapping, error) {
 	fields := strings.Fields(s)
+	if len(fields) == 0 {
+		return Mapping{}, fmt.Errorf("empty protect string: at least one owner is required")
+	}
 	owners := make([]string, 0, len(fields))
 	for _, tok := range fields {
 		if !strings.HasPrefix(tok, "@") {
