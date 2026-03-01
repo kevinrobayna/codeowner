@@ -184,6 +184,9 @@ func extractOwners(line, prefix string) []string {
 // isValidOwner checks that an owner handle contains only valid characters:
 // @, letters, digits, hyphens, underscores, and slashes (for org/team).
 func isValidOwner(s string) bool {
+	if len(s) < 2 {
+		return false
+	}
 	for _, c := range s {
 		switch {
 		case c >= 'a' && c <= 'z',
