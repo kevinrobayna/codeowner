@@ -410,6 +410,22 @@ func TestParseProtect_InvalidChars(t *testing.T) {
 	}
 }
 
+func TestParseFile_RejectsBareAt(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "bareat.py")
+	content := "# CodeOwner: @\nx = 1\n"
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if len(got) > 0 {
+		t.Errorf("should reject bare @ as owner, got %v", got)
+	}
+}
+
 func TestParseFile_RejectsNoAt(t *testing.T) {
 	t.Parallel()
 
