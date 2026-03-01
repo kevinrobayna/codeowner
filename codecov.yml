@@ -8,6 +8,10 @@ coverage:
       default:
         target: 95%
 
+comment:
+  layout: "reach,diff,flags,files"
+  require_changes: true
+
 ignore:
   - "cmd/**"
   - "internal/appinfo/**"
