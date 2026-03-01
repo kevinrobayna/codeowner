@@ -475,6 +475,49 @@ func TestParseProtect_InvalidChars(t *testing.T) {
 	}
 }
 
+func TestParseDir_SkipsSymlinks(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+
+	// Create a real file with a CodeOwner annotation.
+	content := "// CodeOwner: @real-team\npackage main\n"
+	if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a symlink to the file — this should be skipped.
+	if err := os.Symlink(filepath.Join(dir, "main.go"), filepath.Join(dir, "link.go")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create a directory symlink cycle — this should be skipped.
+	sub := filepath.Join(dir, "sub")
+	if err := os.Mkdir(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(dir, filepath.Join(sub, "loop")); err != nil {
+		t.Fatal(err)
+	}
+
+	mappings, err := scanning.ParseDir(dir, scanning.DefaultPrefix, scanning.CodeOwnerFile)
+	if err != nil {
+		t.Fatalf("ParseDir should not error on symlinks, got: %v", err)
+	}
+
+	// Should find only the real file, not the symlinked copy.
+	found := make(map[string]bool)
+	for _, m := range mappings {
+		found[m.Path] = true
+	}
+	if !found["/main.go"] {
+		t.Error("expected to find /main.go mapping")
+	}
+	if found["/link.go"] {
+		t.Error("symlinked file /link.go should be skipped")
+	}
+}
+
 func TestParseFile_RejectsBareAt(t *testing.T) {
 	t.Parallel()
 
