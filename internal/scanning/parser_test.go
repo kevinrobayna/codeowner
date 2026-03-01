@@ -437,6 +437,29 @@ func TestParseFile_RejectsBareAt(t *testing.T) {
 	}
 }
 
+func TestParseProtect_RejectsEmptyInput(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name  string
+		input string
+	}{
+		{name: "empty string", input: ""},
+		{name: "whitespace only", input: "   "},
+		{name: "tabs only", input: "\t\t"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			_, err := scanning.ParseProtect(tc.input)
+			if err == nil {
+				t.Errorf("ParseProtect(%q) should return error", tc.input)
+			}
+		})
+	}
+}
+
 func TestParseFile_RejectsNoAt(t *testing.T) {
 	t.Parallel()
 
