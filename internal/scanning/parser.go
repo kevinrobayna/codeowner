@@ -110,6 +110,9 @@ func ParseDir(root, prefix, dirOwnerFile string) ([]Mapping, error) {
 		if err != nil {
 			return err
 		}
+		if d.Type()&fs.ModeSymlink != 0 {
+			return nil
+		}
 		if d.IsDir() && d.Name() == ".git" {
 			return filepath.SkipDir
 		}
