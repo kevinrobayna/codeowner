@@ -2,7 +2,6 @@ package formatter
 
 import (
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -64,10 +63,10 @@ func stripRoot(path string) string {
 // 0 for root-level files, 1 for hidden directories, 2 for everything else.
 func pathSection(path string) int {
 	p := stripRoot(path)
-	if !strings.Contains(p, string(filepath.Separator)) {
+	if !strings.Contains(p, "/") {
 		return 0
 	}
-	first := strings.SplitN(p, string(filepath.Separator), 2)[0]
+	first := strings.SplitN(p, "/", 2)[0]
 	if strings.HasPrefix(first, ".") {
 		return 1
 	}
@@ -79,13 +78,14 @@ func pathSection(path string) int {
 // or the first two directories for deeper paths.
 func groupKey(path string) string {
 	p := stripRoot(path)
-	dir := filepath.Dir(p)
-	if dir == "." {
+	idx := strings.LastIndex(p, "/")
+	if idx < 0 {
 		return ""
 	}
-	parts := strings.SplitN(dir, string(filepath.Separator), 3)
+	dir := p[:idx]
+	parts := strings.SplitN(dir, "/", 3)
 	if len(parts) >= 2 {
-		return parts[0] + string(filepath.Separator) + parts[1]
+		return parts[0] + "/" + parts[1]
 	}
 	return parts[0]
 }

@@ -155,15 +155,15 @@ func TestParseDir(t *testing.T) {
 	}
 
 	checks := map[string][]string{
-		"/example.py":  {"@python_owner"},
-		"/example.go":  {"@go_owner"},
-		"/example.rs":  {"@rust_owner"},
-		"/example.css": {"@css_owner"},
-		"/" + filepath.Join("nested", "handler.go"):                      {"@api-team"},
-		"/" + filepath.Join("nested", "deeply", "service.py"):            {"@platform-team"},
-		"/" + filepath.Join("nested", "deeply", "nested", "config.yaml"): {"@infra-team"},
-		"/" + filepath.Join(".github", "workflows", "ci.yml"):            {"@devops-team"},
-		"/" + filepath.Join("nested", "deeply", ".hidden", "secret.rb"):  {"@secret-team"},
+		"/example.py":                       {"@python_owner"},
+		"/example.go":                       {"@go_owner"},
+		"/example.rs":                       {"@rust_owner"},
+		"/example.css":                      {"@css_owner"},
+		"/nested/handler.go":                {"@api-team"},
+		"/nested/deeply/service.py":         {"@platform-team"},
+		"/nested/deeply/nested/config.yaml": {"@infra-team"},
+		"/.github/workflows/ci.yml":         {"@devops-team"},
+		"/nested/deeply/.hidden/secret.rb":  {"@secret-team"},
 	}
 
 	for path, wantOwners := range checks {
@@ -409,7 +409,7 @@ func TestParseDir_CodeOwnerFile(t *testing.T) {
 	}
 
 	// Regular file in same directory should still be parsed normally
-	appPath := "/" + filepath.Join("dirowner", "app.go")
+	appPath := "/dirowner/app.go"
 	if got, ok := found[appPath]; !ok {
 		t.Errorf("missing mapping for %s", appPath)
 	} else if !slices.Equal(got, []string{"@app-team"}) {
@@ -417,7 +417,7 @@ func TestParseDir_CodeOwnerFile(t *testing.T) {
 	}
 
 	// Nested .codeowner should produce its own /dir/sub/ mapping
-	subPath := "/" + filepath.Join("dirowner", "sub") + "/"
+	subPath := "/dirowner/sub/"
 	if got, ok := found[subPath]; !ok {
 		t.Errorf("missing mapping for %s", subPath)
 	} else if !slices.Equal(got, []string{"@sub-team"}) {
@@ -425,7 +425,7 @@ func TestParseDir_CodeOwnerFile(t *testing.T) {
 	}
 
 	// Annotated file alongside nested .codeowner
-	handlerPath := "/" + filepath.Join("dirowner", "sub", "handler.go")
+	handlerPath := "/dirowner/sub/handler.go"
 	if got, ok := found[handlerPath]; !ok {
 		t.Errorf("missing mapping for %s", handlerPath)
 	} else if !slices.Equal(got, []string{"@handler-team"}) {
@@ -433,7 +433,7 @@ func TestParseDir_CodeOwnerFile(t *testing.T) {
 	}
 
 	// Deeper nested file without its own .codeowner
-	utilPath := "/" + filepath.Join("dirowner", "sub", "deep", "util.go")
+	utilPath := "/dirowner/sub/deep/util.go"
 	if got, ok := found[utilPath]; !ok {
 		t.Errorf("missing mapping for %s", utilPath)
 	} else if !slices.Equal(got, []string{"@util-team"}) {

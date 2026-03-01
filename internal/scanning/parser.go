@@ -148,7 +148,7 @@ func parseEntry(root, path, name, prefix, dirOwnerFile string) (Mapping, bool, e
 	if relErr != nil {
 		rel = path
 	}
-	return Mapping{Path: "/" + rel, Owners: owners}, true, nil
+	return Mapping{Path: "/" + filepath.ToSlash(rel), Owners: owners}, true, nil
 }
 
 // parseDirOwnerEntry handles a .codeowner file, returning a directory-level
@@ -168,7 +168,7 @@ func parseDirOwnerEntry(root, path string) (Mapping, bool, error) {
 	if rel == "." {
 		return Mapping{Path: "/", Owners: owners}, true, nil
 	}
-	return Mapping{Path: "/" + rel + "/", Owners: owners}, true, nil
+	return Mapping{Path: "/" + filepath.ToSlash(rel) + "/", Owners: owners}, true, nil
 }
 
 // extractOwners parses all @-prefixed tokens after the prefix on a line.
