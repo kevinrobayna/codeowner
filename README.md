@@ -25,7 +25,7 @@ src/api/handler.go @backend-team
 web/index.html @frontend-team
 ```
 
-The tool is **language-agnostic** — it searches for the annotation as plain text, so it works with any comment syntax.
+The tool is **language-agnostic** — it searches for the annotation as plain text, so it works with any comment syntax. Binary files and files larger than 1 MB are automatically skipped.
 
 ### Multiple owners
 
