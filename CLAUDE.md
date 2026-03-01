@@ -39,26 +39,43 @@ make test
 
 Runs `go test -race -cover ./...` across all packages.
 
-### Test Parallelization
+### Test Style: Table-Driven Tests
 
-Always use `t.Parallel()` in tests. Every top-level test function and subtest should call `t.Parallel()` unless it modifies process-global state (e.g., `os.Chdir()`, `os.Setenv()`).
+Prefer table-driven tests (test cases) whenever possible. They make it easy to visualize inputs, expected outputs, and edge cases at a glance.
 
 ```go
 func TestFeature(t *testing.T) {
     t.Parallel()
-    // ...
-}
 
-func TestFeature_Subtests(t *testing.T) {
-    t.Parallel()
+    testCases := []struct {
+        name     string
+        input    string
+        expected string
+    }{
+        {name: "basic case", input: "foo", expected: "bar"},
+        {name: "empty input", input: "", expected: ""},
+        {name: "edge case", input: "special@char", expected: "escaped"},
+    }
+
     for _, tc := range testCases {
         t.Run(tc.name, func(t *testing.T) {
             t.Parallel()
-            // ...
+            got := Feature(tc.input)
+            if got != tc.expected {
+                t.Errorf("Feature(%q) = %q, want %q", tc.input, got, tc.expected)
+            }
         })
     }
 }
 ```
+
+### Test Fixtures (`testdata/`)
+
+Use the `testdata/` directory for test fixtures — real example files that demonstrate the problem being tested. When adding new features or fixing bugs, add corresponding fixture files to `testdata/` so the test inputs are concrete, readable, and easy to inspect outside of the test code. Reference fixtures in tests via relative paths (e.g., `"testdata/example.go"`).
+
+### Test Parallelization
+
+Always use `t.Parallel()` in tests. Every top-level test function and subtest should call `t.Parallel()` unless it modifies process-global state (e.g., `os.Chdir()`, `os.Setenv()`).
 
 ### Linting and Formatting
 
