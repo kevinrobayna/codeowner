@@ -2,12 +2,23 @@ package scanning
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+// maxFileSize is the maximum file size (1 MB) that ParseDir will scan.
+// Files larger than this are skipped to avoid wasting time on binaries or
+// generated artifacts.
+const maxFileSize = 1 << 20
+
+// binarySniffSize is the number of bytes read to detect binary content.
+const binarySniffSize = 512
 
 // Mapping holds a file path and its code owners.
 type Mapping struct {
@@ -52,10 +63,16 @@ func ParseFile(path, prefix string) ([]string, error) {
 	}
 	defer f.Close()
 
+	return scanOwners(f, path, prefix)
+}
+
+// scanOwners extracts code owners from a reader, used by both ParseFile and
+// parseEntry (which passes an already-open file to avoid a double open).
+func scanOwners(r io.Reader, path, prefix string) ([]string, error) {
 	seen := make(map[string]struct{})
 	var owners []string
 
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
 		for _, o := range extractOwners(scanner.Text(), prefix) {
 			owners = appendUnique(seen, owners, o)
@@ -114,7 +131,7 @@ func ParseDir(root, prefix, dirOwnerFile string) ([]Mapping, error) {
 			return nil
 		}
 
-		m, ok, parseErr := parseEntry(root, path, d.Name(), prefix, dirOwnerFile)
+		m, ok, parseErr := parseEntry(root, path, d, prefix, dirOwnerFile)
 		if parseErr != nil {
 			return parseErr
 		}
@@ -127,14 +144,50 @@ func ParseDir(root, prefix, dirOwnerFile string) ([]Mapping, error) {
 	return mappings, err
 }
 
+// isBinary reports whether buf contains a null byte, indicating binary content.
+func isBinary(buf []byte) bool {
+	return bytes.IndexByte(buf, 0) >= 0
+}
+
 // parseEntry handles a single file during directory walking, returning a
-// Mapping and true if ownership was found.
-func parseEntry(root, path, name, prefix, dirOwnerFile string) (Mapping, bool, error) {
-	if name == dirOwnerFile {
+// Mapping and true if ownership was found. It uses the DirEntry from WalkDir
+// to avoid a redundant os.Stat call, and opens the file once for both binary
+// detection and annotation scanning.
+func parseEntry(root, path string, d fs.DirEntry, prefix, dirOwnerFile string) (Mapping, bool, error) {
+	if d.Name() == dirOwnerFile {
 		return parseDirOwnerEntry(root, path)
 	}
 
-	owners, err := ParseFile(path, prefix)
+	info, err := d.Info()
+	if err != nil {
+		return Mapping{}, false, err
+	}
+	if info.Size() > maxFileSize {
+		return Mapping{}, false, nil
+	}
+
+	f, err := os.Open(path)
+	if err != nil {
+		return Mapping{}, false, err
+	}
+	defer f.Close()
+
+	// Sniff the first bytes to detect binary content.
+	buf := make([]byte, binarySniffSize)
+	n, err := f.Read(buf)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return Mapping{}, false, err
+	}
+	if isBinary(buf[:n]) {
+		return Mapping{}, false, nil
+	}
+
+	// Seek back to the start so scanOwners reads the full file.
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		return Mapping{}, false, err
+	}
+
+	owners, err := scanOwners(f, path, prefix)
 	if err != nil {
 		return Mapping{}, false, err
 	}
