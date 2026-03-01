@@ -61,7 +61,10 @@ func TestParseFile(t *testing.T) {
 			t.Parallel()
 
 			path := filepath.Join(dir, tt.file)
-			got := scanning.ParseFile(path, scanning.DefaultPrefix)
+			got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+			if err != nil {
+				t.Fatalf("ParseFile(%s) error: %v", tt.file, err)
+			}
 			if len(got) == 0 {
 				t.Fatalf("expected to find CodeOwner in %s, got nothing", tt.file)
 			}
@@ -81,7 +84,10 @@ func TestParseFile_NoAnnotation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if len(got) > 0 {
 		t.Errorf("expected no CodeOwner, got %v", got)
 	}
@@ -91,7 +97,10 @@ func TestParseFile_MultipleOwnersOneLine(t *testing.T) {
 	t.Parallel()
 
 	path := filepath.Join(testdataDir(), "multi_owners_single_line.py")
-	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	want := []string{"@team-a", "@team-b", "@person-c"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -102,7 +111,10 @@ func TestParseFile_MultipleOwnersMultipleLines(t *testing.T) {
 	t.Parallel()
 
 	path := filepath.Join(testdataDir(), "multi_owners_multi_line.py")
-	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	want := []string{"@team-frontend", "@team-backend"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -113,7 +125,10 @@ func TestParseFile_DeduplicatesOwners(t *testing.T) {
 	t.Parallel()
 
 	path := filepath.Join(testdataDir(), "multi_owners_deduplicated.py")
-	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	want := []string{"@team-a"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -170,13 +185,19 @@ func TestParseFile_CustomPrefix(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := scanning.ParseFile(path, "Owner:")
+	got, err := scanning.ParseFile(path, "Owner:")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	want := []string{"@team-backend"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 
-	got = scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err = scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if len(got) > 0 {
 		t.Errorf("default prefix should not match custom annotation, got %v", got)
 	}
@@ -192,7 +213,10 @@ func TestParseFile_RejectsNoSpace(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if len(got) > 0 {
 		t.Errorf("should reject annotation without space after prefix, got %v", got)
 	}
@@ -202,7 +226,10 @@ func TestParseFile_OrgTeamOwner(t *testing.T) {
 	t.Parallel()
 
 	path := filepath.Join(testdataDir(), "org_team_owner.py")
-	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	want := []string{"@myorg/backend-team"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -213,7 +240,10 @@ func TestParseFile_OrgTeamMultipleOwners(t *testing.T) {
 	t.Parallel()
 
 	path := filepath.Join(testdataDir(), "org_team_multiple_owners.js")
-	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	want := []string{"@myorg/frontend-team", "@myorg/design-team", "@individual-dev"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -224,7 +254,10 @@ func TestParseFile_RejectsPrefixNotPrecededBySpace(t *testing.T) {
 	t.Parallel()
 
 	path := filepath.Join(testdataDir(), "invalid_prefix_not_preceded_by_space.md")
-	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if len(got) > 0 {
 		t.Errorf("should reject prefix not preceded by space, got %v", got)
 	}
@@ -234,7 +267,10 @@ func TestParseFile_TabBeforePrefix(t *testing.T) {
 	t.Parallel()
 
 	path := filepath.Join(testdataDir(), "tab_before_prefix.py")
-	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	want := []string{"@tab-team"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -245,7 +281,10 @@ func TestParseFile_RejectsOwnerWithSpecialChars(t *testing.T) {
 	t.Parallel()
 
 	path := filepath.Join(testdataDir(), "invalid_owner_special_chars.txt")
-	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if len(got) > 0 {
 		t.Errorf("should reject owners with special characters, got %v", got)
 	}
@@ -260,7 +299,10 @@ func TestParseCodeOwnerFile_SingleOwner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := scanning.ParseCodeOwnerFile(path)
+	got, err := scanning.ParseCodeOwnerFile(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	want := []string{"@team-a"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -276,7 +318,10 @@ func TestParseCodeOwnerFile_MultipleOwnersSpaceSeparated(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := scanning.ParseCodeOwnerFile(path)
+	got, err := scanning.ParseCodeOwnerFile(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	want := []string{"@team-a", "@team-b"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -292,7 +337,10 @@ func TestParseCodeOwnerFile_MultipleOwnersMultiLine(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := scanning.ParseCodeOwnerFile(path)
+	got, err := scanning.ParseCodeOwnerFile(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	want := []string{"@team-a", "@team-b"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -308,7 +356,10 @@ func TestParseCodeOwnerFile_Deduplication(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := scanning.ParseCodeOwnerFile(path)
+	got, err := scanning.ParseCodeOwnerFile(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	want := []string{"@team-a"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -324,7 +375,10 @@ func TestParseCodeOwnerFile_InvalidOwnersIgnored(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := scanning.ParseCodeOwnerFile(path)
+	got, err := scanning.ParseCodeOwnerFile(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	want := []string{"@valid-team"}
 	if !slices.Equal(got, want) {
 		t.Errorf("got %v, want %v", got, want)
@@ -431,7 +485,10 @@ func TestParseFile_RejectsBareAt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if len(got) > 0 {
 		t.Errorf("should reject bare @ as owner, got %v", got)
 	}
@@ -470,7 +527,10 @@ func TestParseFile_RejectsNoAt(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := scanning.ParseFile(path, scanning.DefaultPrefix)
+	got, err := scanning.ParseFile(path, scanning.DefaultPrefix)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if len(got) > 0 {
 		t.Errorf("should reject owner without @ prefix, got %v", got)
 	}
