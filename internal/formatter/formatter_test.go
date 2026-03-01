@@ -102,6 +102,30 @@ func TestCodeOwners_ProtectMapping(t *testing.T) {
 	}
 }
 
+func TestCodeOwners_RootDirOwnerGroupsWithRootFiles(t *testing.T) {
+	t.Parallel()
+
+	mappings := []scanning.Mapping{
+		{Path: "/README.md", Owners: []string{"@docs"}},
+		{Path: "/", Owners: []string{"@root-team"}},
+		{Path: "/src/main.go", Owners: []string{"@backend"}},
+		{Path: "/lib/", Owners: []string{"@lib-team"}},
+	}
+
+	got := formatter.CodeOwners(mappings)
+	// Root dir owner "/" should be grouped with root-level entries.
+	want := "/ @root-team\n" +
+		"/README.md @docs\n" +
+		"\n" +
+		"/lib/ @lib-team\n" +
+		"\n" +
+		"/src/main.go @backend\n"
+
+	if got != want {
+		t.Errorf("CodeOwners:\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestCodeOwners_SameDirectoryNoBlankLines(t *testing.T) {
 	t.Parallel()
 

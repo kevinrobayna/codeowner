@@ -83,6 +83,9 @@ func groupKey(path string) string {
 		return ""
 	}
 	dir := p[:idx]
+	if dir == "" {
+		return ""
+	}
 	parts := strings.SplitN(dir, "/", 3)
 	if len(parts) >= 2 {
 		return parts[0] + "/" + parts[1]
